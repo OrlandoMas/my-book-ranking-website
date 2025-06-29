@@ -278,16 +278,34 @@ function importRankingsFromFile(event) {
             const importedData = JSON.parse(e.target.result);
 
             if (importedData.bookRankingScores && importedData.bookComparisonHistory) {
-                // IMPORTANT: This will OVERWRITE your current rankings
-                // You could add a 'confirm' dialog here to ask the user if they want to merge or overwrite
-                localStorage.setItem('bookRankingScores', JSON.stringify(importedData.bookRankingScores));
-                localStorage.setItem('bookComparisonHistory', JSON.stringify(importedData.bookComparisonHistory));
+                // Confirm with the user before overwriting
+                if (!confirm('Importing will overwrite your current rankings. Are you sure you want to proceed?')) {
+                    displayMessage('Import cancelled.', 'info');
+                    return; // Exit if user cancels
+                }
 
-                // Reload data into memory and refresh display
-                loadRankingFromLocalStorage(); // This will now load the newly imported data
-                displayRankedList(); // Refresh the list with imported data
-                displayNextComparison(); // Refresh comparison with potentially new books
+                // Update in-memory data directly with imported data
+                bookScores = importedData.bookRankingScores;
+                comparisonHistory = importedData.bookComparisonHistory;
+
+                // Also update localStorage
+                localStorage.setItem('bookRankingScores', JSON.stringify(bookScores));
+                localStorage.setItem('bookComparisonHistory', JSON.stringify(comparisonHistory));
+
+                // Re-initialize scores for all books if needed (important for newly imported books)
+                // This ensures allBooks has a score, even if 0, for the display
+                allBooks.forEach(book => {
+                    if (bookScores[book.books_id] === undefined) {
+                        bookScores[book.books_id] = 0;
+                    }
+                });
+
+
+                // Refresh the UI to reflect the imported data
+                displayRankedList(); // Regenerate and display the ranked list
+                displayNextComparison(); // Update the comparison section
                 displayMessage('Rankings imported successfully!', 'success');
+
             } else {
                 displayMessage('Invalid import file format. Missing ranking data.', 'error');
             }
@@ -303,7 +321,6 @@ function importRankingsFromFile(event) {
 
     reader.readAsText(file); // Read the file as text
 }
-
 // Helper function to display messages to the user
 function displayMessage(message, type = 'info', duration = 3000) {
     messageArea.textContent = message;
