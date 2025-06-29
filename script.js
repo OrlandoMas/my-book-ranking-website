@@ -15,6 +15,7 @@ const rankedBookList = document.getElementById('ranked-book-list');
 const noMoreBooksMessage = document.getElementById('no-more-books');
 const messageArea = document.getElementById('message-area');
 const resetRankingsButton = document.getElementById('reset-rankings-button');
+const exportRankingsButton = document.getElementById('export-rankings-button');
 
 let currentBooksToCompare = []; // Stores the two books currently being displayed
 
@@ -213,6 +214,52 @@ function loadRankingFromLocalStorage() {
     }
 }
 
+// Function to export rankings to a downloadable JSON file
+function exportRankingsToFile() {
+    try {
+        const scores = localStorage.getItem('bookRankingScores');
+        const history = localStorage.getItem('bookComparisonHistory');
+
+        if (!scores && !history) {
+            displayMessage('No ranking data to export!', 'info');
+            return;
+        }
+
+        const exportData = {
+            bookRankingScores: scores ? JSON.parse(scores) : {},
+            bookComparisonHistory: history ? JSON.parse(history) : []
+        };
+
+        // Convert the data to a JSON string
+        const dataStr = JSON.stringify(exportData, null, 2); // null, 2 for pretty printing
+
+        // Create a Blob from the JSON string
+        const blob = new Blob([dataStr], { type: 'application/json' });
+
+        // Create a temporary URL for the Blob
+        const url = URL.createObjectURL(blob);
+
+        // Create a temporary link element
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `book_rankings_backup_${new Date().toISOString().split('T')[0]}.json`; // Filename with date
+
+        // Append link to body, click it, and remove it
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Revoke the object URL to free up memory
+        URL.revokeObjectURL(url);
+
+        displayMessage('Your rankings have been exported successfully!', 'success');
+
+    } catch (e) {
+        console.error("Error exporting data:", e);
+        displayMessage('Failed to export rankings. Error: ' + e.message, 'error');
+    }
+}
+
 // Helper function to display messages to the user
 function displayMessage(message, type = 'info', duration = 3000) {
     messageArea.textContent = message;
@@ -250,6 +297,8 @@ document.addEventListener('DOMContentLoaded', loadBooks);
 // Added to Improve Step 8
 resetRankingsButton.addEventListener('click', resetAllRankings);
 
+exportRankingsButton.addEventListener('click', exportRankingsToFile);
+
 // Event listener for toggling summary visibility
 rankedBookList.addEventListener('click', (event) => {
     if (event.target.classList.contains('toggle-summary-button')) {
@@ -263,3 +312,4 @@ rankedBookList.addEventListener('click', (event) => {
         }
     }
 });
+

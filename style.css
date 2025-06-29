@@ -163,12 +163,18 @@ main {
 .toggle-summary-button:hover {
     background-color: #5a6268;
 }
+
 footer {
     text-align: center;
     padding: 20px;
     margin-top: 40px;
     background-color: #333;
     color: #fff;
+}
+
+.data-management-buttons {
+    margin-top: 30px;
+    text-align: center;
 }
 
 /* Responsive adjustments */
