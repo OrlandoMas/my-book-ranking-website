@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Personal Book Ranking</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>My Personal Book Ranking</h1>
+    </header>
+
+    <main>
+        <section id="ranking-interface">
+            <h2>Which book do you prefer?</h2>
+            <div class="book-comparison-container">
+                <div class="book-card" id="book-1">
+                    <h3 class="book-title">Loading...</h3>
+                    <p class="book-author"></p>
+                    <button class="prefer-button" data-book-id="">I prefer this</button>
+                </div>
+                <div class="book-card" id="book-2">
+                    <h3 class="book-title">Loading...</h3>
+                    <p class="book-author"></p>
+                    <button class="prefer-button" data-book-id="">I prefer this</button>
+                </div>
+            </div>
+            <p id="no-more-books" style="display: none;">No more books to compare!</p>
+        </section>
+
+        <section id="ranked-list-section">
+            <h2>Your Ranked Books</h2>
+            <ul id="ranked-book-list">
+                <li>No books ranked yet.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Personal Book Ranking</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
