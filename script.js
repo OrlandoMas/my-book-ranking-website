@@ -307,6 +307,7 @@ function importRankingsFromFile(event) {
                 displayRankedList(); // Regenerate and display the ranked list
                 displayNextComparison(); // Update the comparison section
                 displayMessage('Rankings imported successfully!', 'success');
+                displayCacheReminder();
 
             } else {
                 displayMessage('Invalid import file format. Missing ranking data.', 'error');
@@ -357,15 +358,12 @@ function resetAllRankings() {
 // Function to display the cache reminder message  Step 9 improvement but implented by changes in step 8
 function displayCacheReminder() {
     const dismissed = localStorage.getItem('cacheReminderDismissed');
-    if (!dismissed) { // Only show if it hasn't been dismissed before
         cacheReminderMessage.style.display = 'block';
-    }
 }
 
 // Initial load of books and display
 document.addEventListener('DOMContentLoaded', () => {
     loadBooks();
-    displayCacheReminder(); // Call the new function here
 });
 
 // Added to Improve Step 8
