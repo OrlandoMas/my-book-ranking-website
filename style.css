@@ -85,24 +85,84 @@ main {
     padding: 0;
 }
 
-#ranked-book-list li {
+/* Existing: #ranked-book-list li { ... } */
+#ranked-book-list li.ranked-book-item {
     background-color: #f9f9f9;
     border: 1px solid #eee;
-    margin-bottom: 10px;
-    padding: 10px 15px;
-    border-radius: 5px;
+    margin-bottom: 15px; /* More space between items */
+    padding: 15px;
+    border-radius: 8px;
+    display: flex; /* Use flexbox for layout */
+    flex-direction: column; /* Stack info vertically */
+    position: relative; /* For button positioning */
+}
+
+.rank-info {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: baseline;
+    margin-bottom: 10px;
+    border-bottom: 1px dashed #eee; /* Separator */
+    padding-bottom: 5px;
 }
 
-#ranked-book-list li .rank-number {
+.rank-number {
     font-weight: bold;
-    margin-right: 10px;
-    color: #007bff;
-    font-size: 1.1em;
+    font-size: 1.5em; /* Larger rank number */
+    color: #0056b3; /* Darker blue */
+    margin-right: 15px;
 }
 
+.book-score {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.book-details {
+    flex-grow: 1;
+    margin-bottom: 10px;
+}
+
+.ranked-title {
+    font-size: 1.3em;
+    margin-top: 0;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.ranked-author {
+    font-style: italic;
+    color: #555;
+    font-size: 0.9em;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.ranked-summary {
+    font-size: 0.85em;
+    color: #444;
+    background-color: #eef;
+    padding: 10px;
+    border-left: 3px solid #007bff;
+    margin-top: 10px;
+    max-height: 150px; /* Limit height to prevent huge summaries */
+    overflow-y: auto; /* Add scrollbar if summary is too long */
+}
+
+.toggle-summary-button {
+    background-color: #6c757d; /* Grey button */
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.85em;
+    align-self: flex-start; /* Align to the left within flex container */
+}
+
+.toggle-summary-button:hover {
+    background-color: #5a6268;
+}
 footer {
     text-align: center;
     padding: 20px;
@@ -145,3 +205,4 @@ footer {
     color: #0c5460;
     border: 1px solid #bee5eb;
 }
+

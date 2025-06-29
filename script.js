@@ -143,9 +143,29 @@ function displayRankedList() {
     }
 
     // Display the sorted list
+    // Display the sorted list
     rankedBooksArray.forEach((bookData, index) => {
         const listItem = document.createElement('li');
-        listItem.innerHTML = `<span class="rank-number">${index + 1}.</span> <strong>${bookData.title}</strong> by ${bookData.author} (Score: ${bookData.score})`;
+        listItem.classList.add('ranked-book-item'); // Add a class for styling
+
+        // Find the full book object from allBooks to get more details (like summary, date)
+        const fullBook = allBooks.find(b => b.books_id === bookData.id);
+
+        const authorDisplay = bookData.author && bookData.author !== 'Unknown Author' ? `by ${bookData.author}` : '';
+        const publicationDate = fullBook && fullBook.date ? `(${fullBook.date})` : '';
+
+        listItem.innerHTML = `
+            <div class="rank-info">
+                <span class="rank-number">${index + 1}.</span>
+                <span class="book-score">Score: ${bookData.score}</span>
+            </div>
+            <div class="book-details">
+                <h4 class="ranked-title">${bookData.title} ${publicationDate}</h4>
+                <p class="ranked-author">${authorDisplay}</p>
+                <p class="ranked-summary" style="display: none;">${fullBook && fullBook.summary ? fullBook.summary : 'No summary available.'}</p>
+            </div>
+            <button class="toggle-summary-button">Show Summary</button>
+        `;
         rankedBookList.appendChild(listItem);
     });
 }
@@ -226,4 +246,20 @@ function resetAllRankings() {
 
 // Initial load of books and display
 document.addEventListener('DOMContentLoaded', loadBooks);
+
+// Added to Improve Step 8
 resetRankingsButton.addEventListener('click', resetAllRankings);
+
+// Event listener for toggling summary visibility
+rankedBookList.addEventListener('click', (event) => {
+    if (event.target.classList.contains('toggle-summary-button')) {
+        const summaryElement = event.target.closest('.ranked-book-item').querySelector('.ranked-summary');
+        if (summaryElement.style.display === 'none') {
+            summaryElement.style.display = 'block';
+            event.target.textContent = 'Hide Summary';
+        } else {
+            summaryElement.style.display = 'none';
+            event.target.textContent = 'Show Summary';
+        }
+    }
+});
