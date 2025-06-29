@@ -18,6 +18,8 @@ const resetRankingsButton = document.getElementById('reset-rankings-button');
 const exportRankingsButton = document.getElementById('export-rankings-button');
 const importFileInput = document.getElementById('import-file-input');
 const importRankingsButton = document.getElementById('import-rankings-button');
+const cacheReminderMessage = document.getElementById('cache-reminder-message');
+const dismissCacheReminderButton = document.getElementById('dismiss-cache-reminder');
 
 let currentBooksToCompare = []; // Stores the two books currently being displayed
 
@@ -352,8 +354,19 @@ function resetAllRankings() {
     }
 }
 
+// Function to display the cache reminder message  Step 9 improvement but implented by changes in step 8
+function displayCacheReminder() {
+    const dismissed = localStorage.getItem('cacheReminderDismissed');
+    if (!dismissed) { // Only show if it hasn't been dismissed before
+        cacheReminderMessage.style.display = 'block';
+    }
+}
+
 // Initial load of books and display
-document.addEventListener('DOMContentLoaded', loadBooks);
+document.addEventListener('DOMContentLoaded', () => {
+    loadBooks();
+    displayCacheReminder(); // Call the new function here
+});
 
 // Added to Improve Step 8
 resetRankingsButton.addEventListener('click', resetAllRankings);
@@ -367,6 +380,11 @@ importRankingsButton.addEventListener('click', () => {
 // When a file is selected in the hidden input, process it
 importFileInput.addEventListener('change', importRankingsFromFile);
 
+dismissCacheReminderButton.addEventListener('click', () => {
+    localStorage.setItem('cacheReminderDismissed', 'true'); // Set flag in local storage
+    cacheReminderMessage.style.display = 'none'; // Hide the message
+    displayMessage('Reminder dismissed. You can clear your browser\'s local storage to show it again.', 'info', 5000);
+});
 
 // Event listener for toggling summary visibility
 rankedBookList.addEventListener('click', (event) => {

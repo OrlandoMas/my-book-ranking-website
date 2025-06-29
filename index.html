@@ -13,6 +13,17 @@
     
     <div id="message-area" role="alert" aria-live="polite">
         </div>
+        
+        <div id="cache-reminder-message" class="info-message" style="display: none;">
+            <h3>Important Development Reminder!</h3>
+            <p>If changes to the website aren't appearing, it's likely a browser cache issue. Please perform a hard refresh:</p>
+            <ul>
+                <li>**Chromebook:** `Ctrl + Shift + R`</li>
+                <li>**Pixel Phone (Chrome):** Go to Chrome App Info > Storage & cache > Clear cache.</li>
+                <li>Alternatively, open Developer Tools (`Ctrl + Shift + I`), go to 'Network' tab, check 'Disable cache', then refresh.</li>
+            </ul>
+            <button id="dismiss-cache-reminder" class="dismiss-button">Got it! Don't show this again.</button>
+        </div>
 
 
     <main>
