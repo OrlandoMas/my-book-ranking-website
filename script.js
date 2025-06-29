@@ -16,6 +16,8 @@ const noMoreBooksMessage = document.getElementById('no-more-books');
 const messageArea = document.getElementById('message-area');
 const resetRankingsButton = document.getElementById('reset-rankings-button');
 const exportRankingsButton = document.getElementById('export-rankings-button');
+const importFileInput = document.getElementById('import-file-input');
+const importRankingsButton = document.getElementById('import-rankings-button');
 
 let currentBooksToCompare = []; // Stores the two books currently being displayed
 
@@ -260,6 +262,48 @@ function exportRankingsToFile() {
     }
 }
 
+// Function to handle importing rankings from a file
+function importRankingsFromFile(event) {
+    const file = event.target.files[0]; // Get the selected file
+
+    if (!file) {
+        displayMessage('No file selected for import.', 'info');
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+
+            if (importedData.bookRankingScores && importedData.bookComparisonHistory) {
+                // IMPORTANT: This will OVERWRITE your current rankings
+                // You could add a 'confirm' dialog here to ask the user if they want to merge or overwrite
+                localStorage.setItem('bookRankingScores', JSON.stringify(importedData.bookRankingScores));
+                localStorage.setItem('bookComparisonHistory', JSON.stringify(importedData.bookComparisonHistory));
+
+                // Reload data into memory and refresh display
+                loadRankingFromLocalStorage(); // This will now load the newly imported data
+                displayRankedList(); // Refresh the list with imported data
+                displayNextComparison(); // Refresh comparison with potentially new books
+                displayMessage('Rankings imported successfully!', 'success');
+            } else {
+                displayMessage('Invalid import file format. Missing ranking data.', 'error');
+            }
+        } catch (error) {
+            console.error("Error parsing or importing data:", error);
+            displayMessage('Failed to import rankings. Please ensure it\'s a valid JSON backup file. Error: ' + error.message, 'error');
+        }
+    };
+
+    reader.onerror = function() {
+        displayMessage('Failed to read file. Please try again.', 'error');
+    };
+
+    reader.readAsText(file); // Read the file as text
+}
+
 // Helper function to display messages to the user
 function displayMessage(message, type = 'info', duration = 3000) {
     messageArea.textContent = message;
@@ -296,8 +340,16 @@ document.addEventListener('DOMContentLoaded', loadBooks);
 
 // Added to Improve Step 8
 resetRankingsButton.addEventListener('click', resetAllRankings);
-
 exportRankingsButton.addEventListener('click', exportRankingsToFile);
+
+// When the import button is clicked, trigger the hidden file input
+importRankingsButton.addEventListener('click', () => {
+    importFileInput.click();
+});
+
+// When a file is selected in the hidden input, process it
+importFileInput.addEventListener('change', importRankingsFromFile);
+
 
 // Event listener for toggling summary visibility
 rankedBookList.addEventListener('click', (event) => {
