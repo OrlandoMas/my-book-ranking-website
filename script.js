@@ -13,6 +13,8 @@ const book1Button = book1Element.querySelector('.prefer-button');
 const book2Button = book2Element.querySelector('.prefer-button');
 const rankedBookList = document.getElementById('ranked-book-list');
 const noMoreBooksMessage = document.getElementById('no-more-books');
+const messageArea = document.getElementById('message-area');
+const resetRankingsButton = document.getElementById('reset-rankings-button');
 
 let currentBooksToCompare = []; // Stores the two books currently being displayed
 
@@ -153,9 +155,15 @@ function saveRankingToLocalStorage() {
     try {
         localStorage.setItem('bookRankingScores', JSON.stringify(bookScores));
         localStorage.setItem('bookComparisonHistory', JSON.stringify(comparisonHistory));
+        displayMessage('Your progress has been saved!', 'success'); // User feedback
     } catch (e) {
         console.error("Error saving to local storage:", e);
-        alert("Failed to save progress. Local storage might be full or disabled.");
+        // More specific error messages based on common LocalStorage errors
+        if (e.name === 'QuotaExceededError') {
+            displayMessage('Storage limit reached! Could not save all data. Please clear some browser data or contact support.', 'error');
+        } else {
+            displayMessage('Failed to save progress. Local storage might be full or disabled. Error: ' + e.message, 'error');
+        }
     }
 }
 
@@ -166,22 +174,56 @@ function loadRankingFromLocalStorage() {
 
         if (savedScores) {
             bookScores = JSON.parse(savedScores);
-            console.log("Loaded scores:", bookScores);
+            // console.log("Loaded scores:", bookScores); // Keep for debugging, remove for production
         }
         if (savedHistory) {
             comparisonHistory = JSON.parse(savedHistory);
-            console.log("Loaded history:", comparisonHistory);
+            // console.log("Loaded history:", comparisonHistory); // Keep for debugging, remove for production
         }
+        displayMessage('Your previous rankings have been loaded!', 'info'); // User feedback
+
     } catch (e) {
         console.error("Error loading from local storage:", e);
-        // Clear corrupt data if parsing fails
+        // Clear potentially corrupt data if parsing fails
         localStorage.removeItem('bookRankingScores');
         localStorage.removeItem('bookComparisonHistory');
-        bookScores = {};
-        comparisonHistory = [];
-        alert("Corrupt data found in local storage. Ranking reset.");
+        bookScores = {}; // Reset scores
+        comparisonHistory = []; // Reset history
+        displayMessage('Corrupt data found in local storage. Your ranking has been reset.', 'error');
+    }
+}
+
+// Helper function to display messages to the user
+function displayMessage(message, type = 'info', duration = 3000) {
+    messageArea.textContent = message;
+    messageArea.className = ''; // Clear previous classes
+    messageArea.classList.add(type);
+    messageArea.style.display = 'block';
+
+    // Hide message after a duration
+    setTimeout(() => {
+        messageArea.style.display = 'none';
+    }, duration);
+}
+
+function resetAllRankings() {
+    if (confirm('Are you sure you want to reset ALL your book rankings? This action cannot be undone.')) {
+        localStorage.removeItem('bookRankingScores');
+        localStorage.removeItem('bookComparisonHistory');
+        bookScores = {}; // Reset in-memory scores
+        comparisonHistory = []; // Reset in-memory history
+
+        // Re-initialize scores for all books
+        allBooks.forEach(book => {
+            bookScores[book.books_id] = 0;
+        });
+
+        displayRankedList(); // Update the displayed list to be empty/reset
+        displayNextComparison(); // Show a new comparison
+        displayMessage('All rankings have been reset successfully!', 'info');
     }
 }
 
 // Initial load of books and display
 document.addEventListener('DOMContentLoaded', loadBooks);
+resetRankingsButton.addEventListener('click', resetAllRankings);

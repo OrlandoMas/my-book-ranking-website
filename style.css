@@ -117,3 +117,31 @@ footer {
         width: 100%; /* Stack cards on smaller screens */
     }
 }
+
+#message-area {
+    margin: 10px auto;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-align: center;
+    max-width: 800px;
+    font-weight: bold;
+    display: none; /* Hidden by default */
+}
+
+#message-area.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+#message-area.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+#message-area.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
