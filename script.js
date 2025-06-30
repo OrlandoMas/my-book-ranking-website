@@ -20,6 +20,9 @@ const importFileInput = document.getElementById('import-file-input');
 const importRankingsButton = document.getElementById('import-rankings-button');
 const cacheReminderMessage = document.getElementById('cache-reminder-message');
 const dismissCacheReminderButton = document.getElementById('dismiss-cache-reminder');
+const INITIAL_ELO = 1500; // Starting Elo rating for all books
+const K_FACTOR = 32;       // How much ratings change per game
+
 
 let currentBooksToCompare = []; // Stores the two books currently being displayed
 
@@ -27,31 +30,40 @@ let currentBooksToCompare = []; // Stores the two books currently being displaye
 async function loadBooks() {
     try {
         const response = await fetch('librarything_Orlando_Mas.json');
-        const data = await response.json();
+        allBooks = await response.json();
 
-        // Convert the object of books into an array for easier processing
-        allBooks = Object.values(data);
+        // Load scores from localStorage or initialize
+        const storedScores = localStorage.getItem('bookRankingScores');
+        if (storedScores) {
+            bookScores = JSON.parse(storedScores);
+        } else {
+            bookScores = {}; // Initialize as empty if nothing stored
+        }
 
-        // Initialize scores for all books if not already loaded from local storage
+        // Ensure every book has an initial ELO score
+        // If a book is new or not in storedScores, give it INITIAL_ELO
         allBooks.forEach(book => {
             if (bookScores[book.books_id] === undefined) {
-                bookScores[book.books_id] = 0; // Initialize with 0 points
+                bookScores[book.books_id] = INITIAL_ELO;
             }
         });
 
-        // Load existing scores from local storage
-        loadRankingFromLocalStorage();
+        // Load comparison history
+        const storedHistory = localStorage.getItem('bookComparisonHistory');
+        if (storedHistory) {
+            comparisonHistory = JSON.parse(storedHistory);
+        } else {
+            comparisonHistory = [];
+        }
 
+        // ... rest of loadBooks function remains the same ...
         displayNextComparison();
         displayRankedList();
-
     } catch (error) {
-        console.error('Error loading book data:', error);
-        book1Title.textContent = 'Error loading books.';
-        book2Title.textContent = 'Error loading books.';
+        console.error('Error loading books:', error);
+        displayMessage('Error loading book data. Please try refreshing.', 'error');
     }
 }
-
 // --- Step 5: Ranking interface ---
 function getRandomUniqueBooks() {
     if (allBooks.length < 2) {
@@ -93,28 +105,56 @@ function displayNextComparison() {
     book2Button.dataset.bookId = bookB.books_id;
 }
 
-// --- Step 6: Implement pairwise ranking ---
-function recordPreference(preferredBookId) {
-    const [bookA, bookB] = currentBooksToCompare;
-    const losingBookId = (bookA.books_id === preferredBookId) ? bookB.books_id : bookA.books_id;
-
-    // Record the outcome (for potential future use, e.g., undo or more complex algo)
-    comparisonHistory.push({
-        winner: preferredBookId,
-        loser: losingBookId,
-        comparisonDate: new Date().toISOString()
-    });
-
-    // Simple Point System: Winner gets 1 point
-    bookScores[preferredBookId] = (bookScores[preferredBookId] || 0) + 1;
-    // You could also decrement the loser's score if you want a more competitive spread:
-    // bookScores[losingBookId] = (bookScores[losingBookId] || 0) - 0.5; // Example: loser loses half a point
-
-    saveRankingToLocalStorage(); // Save after each choice
-    displayRankedList(); // Update the ranked list immediately
-    displayNextComparison(); // Show new books for comparison
+// Helper function to calculate expected score between two players (books)
+function calculateExpectedScore(ratingA, ratingB) {
+    return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
 }
 
+// --- Step 6: Implement pairwise ranking ---
+function recordPreference(preferredBookId, otherBookId) {
+    const book1 = allBooks.find(b => b.books_id === preferredBookId);
+    const book2 = allBooks.find(b => b.books_id === otherBookId);
+
+    if (!book1 || !book2) {
+        console.error("Error: One of the books not found for recording preference.");
+        displayMessage("Error recording preference.", "error");
+        return;
+    }
+
+    // Get current Elo ratings
+    let ratingA = bookScores[preferredBookId];
+    let ratingB = bookScores[otherBookId];
+
+    // Calculate expected scores
+    const expectedScoreA = calculateExpectedScore(ratingA, ratingB);
+    const expectedScoreB = calculateExpectedScore(ratingB, ratingA); // Or 1 - expectedScoreA
+
+    // Determine actual scores
+    const actualScoreA = 1; // Preferred book wins
+    const actualScoreB = 0; // Other book loses
+
+    // Update ratings using the Elo formula
+    ratingA = ratingA + K_FACTOR * (actualScoreA - expectedScoreA);
+    ratingB = ratingB + K_FACTOR * (actualScoreB - expectedScoreB);
+
+    // Store updated ratings (round to avoid long decimals)
+    bookScores[preferredBookId] = Math.round(ratingA);
+    bookScores[otherBookId] = Math.round(ratingB);
+
+    // Store comparison history
+    comparisonHistory.push({
+        winnerId: preferredBookId,
+        loserId: otherBookId,
+        timestamp: new Date().toISOString()
+    });
+
+    // Save to localStorage
+    localStorage.setItem('bookRankingScores', JSON.stringify(bookScores));
+    localStorage.setItem('bookComparisonHistory', JSON.stringify(comparisonHistory));
+
+    displayNextComparison();
+    displayRankedList(); // Refresh the ranked list with new Elo scores
+}
 book1Button.addEventListener('click', (event) => {
     recordPreference(event.target.dataset.bookId);
 });
@@ -125,51 +165,38 @@ book2Button.addEventListener('click', (event) => {
 
 // --- Step 7: Display the ranked list ---
 function displayRankedList() {
-    // Convert bookScores object into an array of {id, score} for sorting
-    const rankedBooksArray = Object.keys(bookScores).map(id => {
-        const book = allBooks.find(b => b.books_id === id);
-        return {
-            id: id,
-            title: book ? book.title : 'Unknown Book',
-            author: book ? book.primaryauthor : 'Unknown Author',
-            score: bookScores[id]
-        };
-    });
+    // ... (existing code to clear list and get items)
 
+    // Convert bookScores object into an array for sorting and filtering
+    // Filter out books that somehow don't have a score (shouldn't happen with Elo initialization)
     // Sort by score in descending order
-    rankedBooksArray.sort((a, b) => b.score - a.score);
+    const sortedBooks = allBooks
+        .filter(book => bookScores[book.books_id] !== undefined) // Ensure book has a score entry
+        .sort((a, b) => bookScores[b.books_id] - bookScores[a.books_id]); // Sort by Elo score (descending)
 
-    // Clear previous list
-    rankedBookList.innerHTML = '';
+    rankedBookList.innerHTML = ''; // Clear previous list
 
-    if (rankedBooksArray.length === 0) {
-        rankedBookList.innerHTML = '<li>No books ranked yet.</li>';
+    if (sortedBooks.length === 0) {
+        rankedBookList.innerHTML = '<li class="info-message">No books ranked yet. Start comparing!</li>';
         return;
     }
 
-    // Display the sorted list
-    // Display the sorted list
-    rankedBooksArray.forEach((bookData, index) => {
+    sortedBooks.forEach((book, index) => {
+        const score = bookScores[book.books_id];
         const listItem = document.createElement('li');
-        listItem.classList.add('ranked-book-item'); // Add a class for styling
-
-        // Find the full book object from allBooks to get more details (like summary, date)
-        const fullBook = allBooks.find(b => b.books_id === bookData.id);
-
-        const authorDisplay = bookData.author && bookData.author !== 'Unknown Author' ? `by ${bookData.author}` : '';
-        const publicationDate = fullBook && fullBook.date ? `(${fullBook.date})` : '';
-
+        listItem.classList.add('ranked-book-item');
         listItem.innerHTML = `
-            <div class="rank-info">
-                <span class="rank-number">${index + 1}.</span>
-                <span class="book-score">Score: ${bookData.score}</span>
-            </div>
+            <div class="rank">${index + 1}.</div>
             <div class="book-details">
-                <h4 class="ranked-title">${bookData.title} ${publicationDate}</h4>
-                <p class="ranked-author">${authorDisplay}</p>
-                <p class="ranked-summary" style="display: none;">${fullBook && fullBook.summary ? fullBook.summary : 'No summary available.'}</p>
+                <div class="title-author-elo">
+                    <span class="title">${book.title}</span> by <span class="author">${book.author}</span>
+                    <span class="elo-score">(Elo: ${score})</span>
+                </div>
+                <div class="summary-toggle">
+                    <button class="toggle-summary-button">Show Summary</button>
+                </div>
+                <div class="ranked-summary" style="display: none;">${book.summary}</div>
             </div>
-            <button class="toggle-summary-button">Show Summary</button>
         `;
         rankedBookList.appendChild(listItem);
     });
@@ -338,16 +365,17 @@ function displayMessage(message, type = 'info', duration = 3000) {
 }
 
 function resetAllRankings() {
-    if (confirm('Are you sure you want to reset ALL your book rankings? This action cannot be undone.')) {
+    if (confirm('Are you sure you want to reset all rankings? This cannot be undone!')) {
         localStorage.removeItem('bookRankingScores');
         localStorage.removeItem('bookComparisonHistory');
         bookScores = {}; // Reset in-memory scores
-        comparisonHistory = []; // Reset in-memory history
 
-        // Re-initialize scores for all books
+        // Re-initialize all books to their initial Elo rating
         allBooks.forEach(book => {
-            bookScores[book.books_id] = 0;
+            bookScores[book.books_id] = INITIAL_ELO; // <-- CHANGE THIS LINE
         });
+
+        comparisonHistory = []; // Reset in-memory history
 
         displayRankedList(); // Update the displayed list to be empty/reset
         displayNextComparison(); // Show a new comparison
@@ -360,6 +388,8 @@ function displayCacheReminder() {
     const dismissed = localStorage.getItem('cacheReminderDismissed');
         cacheReminderMessage.style.display = 'block';
 }
+
+
 
 // Initial load of books and display
 document.addEventListener('DOMContentLoaded', () => {
