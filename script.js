@@ -1,6 +1,7 @@
 let allBooks = []; // Stores all books from JSON
 let comparisonHistory = []; // To store pairs of books compared and the winner
 let bookScores = {}; // To store the ranking score for each book
+let bookApiDetailsCache = {}; // Cache for storing fetched Google Books API details
 
 const rankingInterface = document.getElementById('ranking-interface');
 const book1Element = document.getElementById('book-1');
@@ -31,9 +32,9 @@ async function loadBooks() {
     try {
         const response = await fetch('librarything_Orlando_Mas.json');
         const jsonData = await response.json();
-            allBooks = Object.values(jsonData);
-            
-            
+        allBooks = Object.values(jsonData); // Correctly convert object to array
+
+
         // Load scores from localStorage or initialize
         const storedScores = localStorage.getItem('bookRankingScores');
         if (storedScores) {
@@ -42,13 +43,79 @@ async function loadBooks() {
             bookScores = {}; // Initialize as empty if nothing stored
         }
 
+        // Load API details cache from localStorage
+        const storedApiDetails = localStorage.getItem('bookApiDetailsCache');
+        if (storedApiDetails) {
+            bookApiDetailsCache = JSON.parse(storedApiDetails);
+        } else {
+            bookApiDetailsCache = {};
+        }
+
         // Ensure every book has an initial ELO score
-        // If a book is new or not in storedScores, give it INITIAL_ELO
         allBooks.forEach(book => {
             if (bookScores[book.books_id] === undefined) {
                 bookScores[book.books_id] = INITIAL_ELO;
             }
         });
+
+        // --- NEW: Fetch and cache rich book data from Google Books API ---
+        const fetchDetailsPromises = allBooks.map(async book => {
+            // Use originalisbn for consistency, or the first available ISBN
+            const isbnToUse = book.originalisbn || (Array.isArray(book.isbn) ? book.isbn[0] : (book.isbn && book.isbn[0]));
+
+            if (!isbnToUse) {
+                // console.warn(`No suitable ISBN found for book: ${book.title}`);
+                // Ensure book has default googleBooksData even if no ISBN
+                book.googleBooksData = { thumbnailUrl: null, description: book.summary };
+                return; // Skip books without a usable ISBN
+            }
+
+            // Check cache first
+            if (bookApiDetailsCache[isbnToUse]) {
+                book.googleBooksData = bookApiDetailsCache[isbnToUse]; // Augment book object
+                return;
+            }
+
+            // Fetch from API if not in cache
+            const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbnToUse}`;
+            try {
+                const apiResponse = await fetch(apiUrl);
+                if (!apiResponse.ok) {
+                    console.error(`Google Books API HTTP error for ISBN ${isbnToUse}: ${apiResponse.status}`);
+                    // Store 'error' state to avoid re-fetching on next load if permanent API issue
+                    bookApiDetailsCache[isbnToUse] = { thumbnailUrl: null, description: book.summary, apiFetchError: true };
+                    book.googleBooksData = { thumbnailUrl: null, description: book.summary }; // Augment with empty data
+                    return;
+                }
+                const apiData = await apiResponse.json();
+
+                if (apiData.items && apiData.items.length > 0) {
+                    const volumeInfo = apiData.items[0].volumeInfo;
+                    const details = {
+                        thumbnailUrl: volumeInfo.imageLinks ? (volumeInfo.imageLinks.smallThumbnail || volumeInfo.imageLinks.thumbnail) : null,
+                        // Prefer API description, fallback to local summary, then empty string
+                        description: volumeInfo.description || book.summary || '',
+                        pageCount: volumeInfo.pageCount || null,
+                        publishedDate: volumeInfo.publishedDate || null
+                    };
+                    bookApiDetailsCache[isbnToUse] = details; // Store in cache
+                    book.googleBooksData = details; // Augment book object
+                } else {
+                    // Cache "no result" to avoid re-fetching for the same ISBN
+                    bookApiDetailsCache[isbnToUse] = { thumbnailUrl: null, description: book.summary || '', noApiResult: true };
+                    book.googleBooksData = { thumbnailUrl: null, description: book.summary || '' }; // Augment with empty data
+                }
+            } catch (apiError) {
+                console.error(`Error fetching Google Books data for ISBN ${isbnToUse}:`, apiError);
+                // Cache "error" state
+                bookApiDetailsCache[isbnToUse] = { thumbnailUrl: null, description: book.summary || '', apiFetchError: true };
+                book.googleBooksData = { thumbnailUrl: null, description: book.summary || '' }; // Augment with empty data
+            }
+        });
+
+        // Wait for all API calls (or cache reads) to complete
+        await Promise.all(fetchDetailsPromises);
+        localStorage.setItem('bookApiDetailsCache', JSON.stringify(bookApiDetailsCache)); // Save cache to localStorage
 
         // Load comparison history
         const storedHistory = localStorage.getItem('bookComparisonHistory');
@@ -58,7 +125,7 @@ async function loadBooks() {
             comparisonHistory = [];
         }
 
-        // ... rest of loadBooks function remains the same ...
+        // Now that all data (local and API) is loaded and processed, display elements
         displayNextComparison();
         displayRankedList();
     } catch (error) {
@@ -66,6 +133,7 @@ async function loadBooks() {
         displayMessage('Error loading book data. Please try refreshing.', 'error');
     }
 }
+
 // --- Step 5: Ranking interface ---
 function getRandomUniqueBooks() {
     if (allBooks.length < 2) {
@@ -434,7 +502,7 @@ async function testGoogleBooksAPI() {
 // Call the test function once the DOM is loaded to see results in console
 document.addEventListener('DOMContentLoaded', () => {
     loadBooks();
-    testGoogleBooksAPI(); // <--- ADD THIS LINE TEMPORARILY FOR TESTING
+    // testGoogleBooksAPI(); // <--- ADD THIS LINE TEMPORARILY FOR TESTING
 });
 
 // Initial load of books and display
