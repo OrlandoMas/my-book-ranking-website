@@ -396,7 +396,46 @@ function displayCacheReminder() {
         cacheReminderMessage.style.display = 'block';
 }
 
+// Temporary function to test Google Books API
+async function testGoogleBooksAPI() {
+    const testISBN = '031209423X'; // Use an ISBN from your librarything_Orlando_Mas.json
+    const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${testISBN}`;
 
+    console.log(`Attempting to fetch data for ISBN: ${testISBN}`);
+    console.log(`API URL: ${apiUrl}`);
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Google Books API Response:", data);
+
+        // Check if data.items exists and has content
+        if (data.items && data.items.length > 0) {
+            const bookInfo = data.items[0].volumeInfo;
+            console.log("Found Book Title:", bookInfo.title);
+            console.log("Found Book Authors:", bookInfo.authors);
+            console.log("Found Book Description (Summary):", bookInfo.description);
+            if (bookInfo.imageLinks) {
+                console.log("Found Small Thumbnail Cover:", bookInfo.imageLinks.smallThumbnail);
+                console.log("Found Thumbnail Cover:", bookInfo.imageLinks.thumbnail);
+            }
+        } else {
+            console.log("No results found for this ISBN.");
+        }
+
+    } catch (error) {
+        console.error("Error fetching from Google Books API:", error);
+    }
+}
+
+// Call the test function once the DOM is loaded to see results in console
+document.addEventListener('DOMContentLoaded', () => {
+    loadBooks();
+    testGoogleBooksAPI(); // <--- ADD THIS LINE TEMPORARILY FOR TESTING
+});
 
 // Initial load of books and display
 document.addEventListener('DOMContentLoaded', () => {
