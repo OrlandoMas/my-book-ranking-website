@@ -157,13 +157,17 @@ function recordPreference(preferredBookId, otherBookId) {
     displayNextComparison();
     displayRankedList(); // Refresh the ranked list with new Elo scores
 }
+
 book1Button.addEventListener('click', (event) => {
-    recordPreference(event.target.dataset.bookId);
+    // When book1 is preferred, book2 is the other book
+    recordPreference(currentBooksToCompare[0].books_id, currentBooksToCompare[1].books_id);
 });
 
 book2Button.addEventListener('click', (event) => {
-    recordPreference(event.target.dataset.bookId);
+    // When book2 is preferred, book1 is the other book
+    recordPreference(currentBooksToCompare[1].books_id, currentBooksToCompare[0].books_id);
 });
+
 
 // --- Step 7: Display the ranked list ---
 function displayRankedList() {
