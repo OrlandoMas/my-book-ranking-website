@@ -30,8 +30,10 @@ let currentBooksToCompare = []; // Stores the two books currently being displaye
 async function loadBooks() {
     try {
         const response = await fetch('librarything_Orlando_Mas.json');
-        allBooks = await response.json();
-
+        const jsonData = await response.json();
+            allBooks = Object.values(jsonData);
+            
+            
         // Load scores from localStorage or initialize
         const storedScores = localStorage.getItem('bookRankingScores');
         if (storedScores) {
