@@ -187,25 +187,26 @@ function displayRankedList() {
         return;
     }
 
+
     sortedBooks.forEach((book, index) => {
         const score = bookScores[book.books_id];
         const listItem = document.createElement('li');
         listItem.classList.add('ranked-book-item');
         listItem.innerHTML = `
-            <div class="rank">${index + 1}.</div>
+          <div class="rank">${index + 1}.</div>
             <div class="book-details">
-                <div class="title-author-elo">
-                    <span class="title">${book.title}</span> by <span class="author">${book.author}</span>
-                    <span class="elo-score">(Elo: ${score})</span>
-                </div>
-                <div class="summary-toggle">
-                    <button class="toggle-summary-button">Show Summary</button>
-                </div>
-                <div class="ranked-summary" style="display: none;">${book.summary}</div>
+              <div class="title-author-elo">
+                <span class="title">${book.title}</span> by <span class="author">${book.primaryauthor}</span>
+              </div>
+              <div class="summary-toggle">
+                <button class="toggle-summary-button">Show Summary</button>
+              </div>
+              <div class="ranked-summary" style="display: none;">${book.summary}</div>
             </div>
         `;
         rankedBookList.appendChild(listItem);
-    });
+   });
+
 }
 
 // --- Step 8: Save progress ---
