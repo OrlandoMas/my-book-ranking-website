@@ -269,7 +269,7 @@ function displayRankedList() {
         listItem.innerHTML = `
           <div class="rank">${index + 1}.</div>
             <div class="book-details">
-              <img class="ranked-book-cover" src="${book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'image/default-cover.png'}" alt="Cover for ${book.title || 'Unknown Book'}">
+              <img class="ranked-book-cover" src="${book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'images/default-cover.png'}" alt="Cover for ${book.title || 'Unknown Book'}
               <div class="title-author-elo">
                 <span class="title">${book.title}</span> by <span class="author">${book.primaryauthor}</span>
               </div>
