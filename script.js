@@ -250,11 +250,7 @@ book2Button.addEventListener('click', (event) => {
 
 // --- Step 7: Display the ranked list ---
 function displayRankedList() {
-    // ... (existing code to clear list and get items)
-
     // Convert bookScores object into an array for sorting and filtering
-    // Filter out books that somehow don't have a score (shouldn't happen with Elo initialization)
-    // Sort by score in descending order
     const sortedBooks = allBooks
         .filter(book => bookScores[book.books_id] !== undefined) // Ensure book has a score entry
         .sort((a, b) => bookScores[b.books_id] - bookScores[a.books_id]); // Sort by Elo score (descending)
@@ -266,26 +262,27 @@ function displayRankedList() {
         return;
     }
 
-
     sortedBooks.forEach((book, index) => {
-    const score = bookScores[book.books_id];
-    const listItem = document.createElement('li');
-    listItem.classList.add('ranked-book-item');
-    listItem.innerHTML = `
-      <div class="rank">${index + 1}.</div>
-        <div class="book-details">
-          <img class="ranked-book-cover" src="${book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'image/default-cover.png'}" alt="Cover for ${book.title || 'Unknown Book'}"> <div class="title-author-elo">
-            <span class="title">${book.title}</span> by <span class="author">${book.primaryauthor}</span>
-        </div>
-        <div class="summary-toggle">
-            <button class="toggle-summary-button">Show Summary</button>
-        </div>
-        <div class="ranked-summary" style="display: none;">${book.summary}</div>
-        </div>
+        const score = bookScores[book.books_id];
+        const listItem = document.createElement('li');
+        listItem.classList.add('ranked-book-item');
+        listItem.innerHTML = `
+          <div class="rank">${index + 1}.</div>
+            <div class="book-details">
+              <img class="ranked-book-cover" src="${book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'image/default-cover.png'}" alt="Cover for ${book.title || 'Unknown Book'}">
+              <div class="title-author-elo">
+                <span class="title">${book.title}</span> by <span class="author">${book.primaryauthor}</span>
+              </div>
+              <div class="summary-toggle">
+                <button class="toggle-summary-button">Show Summary</button>
+              </div>
+              <div class="ranked-summary" style="display: none;">${book.summary}</div>
+            </div>
         `;
         rankedBookList.appendChild(listItem);
+    }); // This correctly closes the forEach loop and its callback function.
 
-}
+} // This correctly closes the displayRankedList function.
 
 // --- Step 8: Save progress ---
 function saveRankingToLocalStorage() {
