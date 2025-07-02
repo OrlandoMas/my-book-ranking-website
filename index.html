@@ -10,53 +10,49 @@
     <header>
         <h1>My Personal Book Ranking</h1>
     </header>
-    
+
     <div id="message-area" role="alert" aria-live="polite">
-        </div>
-        
-        <div id="cache-reminder-message" class="info-message" style="display: none;">
-            <h3>Important Development Reminder!</h3>
-            <p>If changes to the website aren't appearing, it's likely a browser cache issue. Please perform a hard refresh:</p>
-            <ul>
-                <li>**Chromebook:** `Ctrl + Shift + R`</li>
-                <li>**Pixel Phone (Chrome):** Go to Chrome App Info > Storage & cache > Clear cache.</li>
-                <li>Alternatively, open Developer Tools (`Ctrl + Shift + I`), go to 'Network' tab, check 'Disable cache', then refresh.</li>
-            </ul>
-            <button id="dismiss-cache-reminder" class="dismiss-button">Got it! Don't show this again.</button>
-        </div>
-
-
-    <div class="book-details">
-        <img class="book-cover" src="" alt="Book Cover"> <div class="book-info">
-            <h2 class="book-title"></h2>
-            <p class="book-author"></p>
-        </div>
     </div>
-    
-    <div class="book-details">
-        <img class="book-cover" src="" alt="Book Cover"> <div class="book-info">
-            <h2 class="book-title"></h2>
-            <p class="book-author"></p>
-        </div>
+
+    <div id="cache-reminder-message" class="info-message" style="display: none;">
+        <h3>Important Development Reminder!</h3>
+        <p>If changes to the website aren't appearing, it's likely a browser cache issue. Please perform a hard refresh:</p>
+        <ul>
+            <li>**Chromebook:** `Ctrl + Shift + R`</li>
+            <li>**Pixel Phone (Chrome):** Go to Chrome App Info > Storage & cache > Clear cache.</li>
+            <li>Alternatively, open Developer Tools (`Ctrl + Shift + I`), go to 'Network' tab, check 'Disable cache', then refresh.</li>
+        </ul>
+        <button id="dismiss-cache-reminder" class="dismiss-button">Got it! Don't show this again.</button>
     </div>
 
     <main>
         <section id="ranking-interface">
-            <h2>Which book do you prefer?</h2>
-            <div class="book-comparison-container">
-                <div class="book-card" id="book-1">
-                    <h3 class="book-title">Loading...</h3>
-                    <p class="book-author"></p>
-                    <button class="prefer-button" data-book-id="">I prefer this</button>
+            <div class="book-comparison">
+                <div id="book-1" class="book-panel">
+                    <div class="book-details">
+                        <img class="book-cover" src="" alt="Book Cover">
+                        <div class="book-info">
+                            <h2 class="book-title"></h2>
+                            <p class="book-author"></p>
+                        </div>
+                    </div>
+                    <button class="prefer-button" data-book-id="">Prefer This Book</button>
                 </div>
-                <div class="book-card" id="book-2">
-                    <h3 class="book-title">Loading...</h3>
-                    <p class="book-author"></p>
-                    <button class="prefer-button" data-book-id="">I prefer this</button>
+
+                <div id="book-2" class="book-panel">
+                    <div class="book-details">
+                        <img class="book-cover" src="" alt="Book Cover">
+                        <div class="book-info">
+                            <h2 class="book-title"></h2>
+                            <p class="book-author"></p>
+                        </div>
+                    </div>
+                    <button class="prefer-button" data-book-id="">Prefer This Book</button>
                 </div>
             </div>
             <p id="no-more-books" style="display: none;">No more books to compare!</p>
         </section>
+
         <section id="ranked-list-section">
             <h2>Your Ranked Books</h2>
                 <ul id="ranked-book-list">
