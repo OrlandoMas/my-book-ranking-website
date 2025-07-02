@@ -259,3 +259,33 @@ footer {
 .dismiss-button:hover {
     background-color: #0056b3;
 }
+
+/* Styles for covers in comparison view */
+.book-details .book-cover {
+    width: 120px; /* Adjust as needed */
+    height: auto;
+    margin-right: 15px; /* Spacing between cover and text */
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    flex-shrink: 0; /* Prevent it from shrinking */
+}
+
+/* Styles for covers in ranked list */
+.ranked-book-item .ranked-book-cover {
+    width: 80px; /* Adjust as needed */
+    height: auto;
+    margin-right: 10px;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+}
+
+/* Adjustments for general book-details layout to accommodate image */
+.ranking-interface .book-details {
+    display: flex; /* Make title/author/cover align horizontally */
+    align-items: flex-start; /* Align to top */
+}
+
+.ranked-book-item .book-details {
+    display: flex;
+    align-items: flex-start;
+    flex-grow: 1; /* Allow details to take up space */
+}

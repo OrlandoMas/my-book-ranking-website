@@ -23,6 +23,8 @@ const cacheReminderMessage = document.getElementById('cache-reminder-message');
 const dismissCacheReminderButton = document.getElementById('dismiss-cache-reminder');
 const INITIAL_ELO = 1500; // Starting Elo rating for all books
 const K_FACTOR = 32;       // How much ratings change per game
+const book1Cover = book1Element.querySelector('.book-cover'); // ADD THIS LINE
+const book2Cover = book2Element.querySelector('.book-cover'); // ADD THIS LINE
 
 
 let currentBooksToCompare = []; // Stores the two books currently being displayed
@@ -155,6 +157,7 @@ function getRandomUniqueBooks() {
     return [book1, book2];
 }
 
+
 function displayNextComparison() {
     currentBooksToCompare = getRandomUniqueBooks();
 
@@ -166,13 +169,21 @@ function displayNextComparison() {
 
     const [bookA, bookB] = currentBooksToCompare;
 
+    // Set book 1 details
     book1Title.textContent = bookA.title || 'Unknown Title';
     book1Author.textContent = bookA.primaryauthor || 'Unknown Author';
     book1Button.dataset.bookId = bookA.books_id;
-
+    // Set book 1 cover (using googleBooksData)
+    book1Cover.src = bookA.googleBooksData && bookA.googleBooksData.thumbnailUrl ? bookA.googleBooksData.thumbnailUrl : 'image/default-cover.png';
+    book1Cover.alt = `Cover for ${bookA.title}`;
+    
+    // Set book 2 details
     book2Title.textContent = bookB.title || 'Unknown Title';
     book2Author.textContent = bookB.primaryauthor || 'Unknown Author';
     book2Button.dataset.bookId = bookB.books_id;
+    // Set book 2 cover (using googleBooksData)
+    book2Cover.src = bookB.googleBooksData && bookB.googleBooksData.thumbnailUrl ? bookB.googleBooksData.thumbnailUrl : 'image/default-cover.png';
+    book2Cover.alt = `Cover for ${bookB.title}`;
 }
 
 // Helper function to calculate expected score between two players (books)
@@ -257,23 +268,22 @@ function displayRankedList() {
 
 
     sortedBooks.forEach((book, index) => {
-        const score = bookScores[book.books_id];
-        const listItem = document.createElement('li');
-        listItem.classList.add('ranked-book-item');
-        listItem.innerHTML = `
-          <div class="rank">${index + 1}.</div>
-            <div class="book-details">
-              <div class="title-author-elo">
-                <span class="title">${book.title}</span> by <span class="author">${book.primaryauthor}</span>
-              </div>
-              <div class="summary-toggle">
-                <button class="toggle-summary-button">Show Summary</button>
-              </div>
-              <div class="ranked-summary" style="display: none;">${book.summary}</div>
-            </div>
+    const score = bookScores[book.books_id];
+    const listItem = document.createElement('li');
+    listItem.classList.add('ranked-book-item');
+    listItem.innerHTML = `
+      <div class="rank">${index + 1}.</div>
+        <div class="book-details">
+          <img class="ranked-book-cover" src="${book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'image/default-cover.png'}" alt="Cover for ${book.title || 'Unknown Book'}"> <div class="title-author-elo">
+            <span class="title">${book.title}</span> by <span class="author">${book.primaryauthor}</span>
+        </div>
+        <div class="summary-toggle">
+            <button class="toggle-summary-button">Show Summary</button>
+        </div>
+        <div class="ranked-summary" style="display: none;">${book.summary}</div>
+        </div>
         `;
         rankedBookList.appendChild(listItem);
-   });
 
 }
 
