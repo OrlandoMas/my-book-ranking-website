@@ -174,7 +174,7 @@ function displayNextComparison() {
     book1Author.textContent = bookA.primaryauthor || 'Unknown Author';
     book1Button.dataset.bookId = bookA.books_id;
     // Set book 1 cover (using googleBooksData)
-    book1Cover.src = bookA.googleBooksData && bookA.googleBooksData.thumbnailUrl ? bookA.googleBooksData.thumbnailUrl : 'image/default-cover.png';
+    book1Cover.src = bookA.googleBooksData && bookA.googleBooksData.thumbnailUrl ? bookA.googleBooksData.thumbnailUrl : 'images/default-cover.png';
     book1Cover.alt = `Cover for ${bookA.title}`;
     
     // Set book 2 details
@@ -182,7 +182,7 @@ function displayNextComparison() {
     book2Author.textContent = bookB.primaryauthor || 'Unknown Author';
     book2Button.dataset.bookId = bookB.books_id;
     // Set book 2 cover (using googleBooksData)
-    book2Cover.src = bookB.googleBooksData && bookB.googleBooksData.thumbnailUrl ? bookB.googleBooksData.thumbnailUrl : 'image/default-cover.png';
+    book2Cover.src = bookB.googleBooksData && bookB.googleBooksData.thumbnailUrl ? bookB.googleBooksData.thumbnailUrl : 'images/default-cover.png';
     book2Cover.alt = `Cover for ${bookB.title}`;
 }
 
