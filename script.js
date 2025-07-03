@@ -276,7 +276,7 @@ function displayRankedList() {
               <div class="summary-toggle">
                 <button class="toggle-summary-button">Show Summary</button>
               </div>
-              <div class="ranked-summary" style="display: none;">${book.summary}</div>
+              <div class="ranked-summary" style="display: none;">${stripHtmlTags(book.summary)}</div>
             </div>
         `;
         rankedBookList.appendChild(listItem);
@@ -503,6 +503,17 @@ async function testGoogleBooksAPI() {
 
     } catch (error) {
         console.error("Error fetching from Google Books API:", error);
+    }
+}
+
+// Helper function to strip HTML tags from a string
+function stripHtmlTags(str) {
+    if ((str === null) || (str === '')) {
+        return false;
+    } else {
+        str = str.toString();
+        // Use a regular expression to remove HTML tags
+        return str.replace(/<[^>]*>/g, '');
     }
 }
 
