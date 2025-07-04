@@ -34,106 +34,47 @@ let currentBooksToCompare = []; // Stores the two books currently being displaye
 async function loadBooks() {
     try {
         const response = await fetch('librarything_Orlando_Mas.json');
-        const jsonData = await response.json();
-        allBooks = Object.values(jsonData); // Correctly convert object to array
+        const data = await response.json();
+        
+        // This is the CRITICAL line that was missing or incorrect!
+        allBooks = data;
+        console.log('loadBooks: allBooks after loading JSON:', allBooks); // Debug log
 
-
-        // Load scores from localStorage or initialize
-        const storedScores = localStorage.getItem('bookRankingScores');
-        if (storedScores) {
-            bookScores = JSON.parse(storedScores);
+        // Load scores from local storage
+        const savedScores = localStorage.getItem('bookScores');
+        if (savedScores) {
+            bookScores = JSON.parse(savedScores);
+            console.log('loadBooks: bookScores after initialization/load:', bookScores); // Debug log
         } else {
-            bookScores = {}; // Initialize as empty if nothing stored
+            // Initialize scores if not found in local storage
+            Object.keys(allBooks).forEach(id => {
+                bookScores[id] = INITIAL_ELO;
+            });
+            console.log('loadBooks: bookScores after initialization/load:', bookScores); // Debug log
         }
 
-        // Load API details cache from localStorage
-        const storedApiDetails = localStorage.getItem('bookApiDetailsCache');
-        if (storedApiDetails) {
-            bookApiDetailsCache = JSON.parse(storedApiDetails);
-        } else {
-            bookApiDetailsCache = {};
-        }
-
-        // Ensure every book has an initial ELO score
-        allBooks.forEach(book => {
-            if (bookScores[book.books_id] === undefined) {
-                bookScores[book.books_id] = INITIAL_ELO;
-            }
-        });
-
-        // --- NEW: Fetch and cache rich book data from Google Books API ---
-        const fetchDetailsPromises = allBooks.map(async book => {
-            // Use originalisbn for consistency, or the first available ISBN
-            const isbnToUse = book.originalisbn || (Array.isArray(book.isbn) ? book.isbn[0] : (book.isbn && book.isbn[0]));
-
-            if (!isbnToUse) {
-                // console.warn(`No suitable ISBN found for book: ${book.title}`);
-                // Ensure book has default googleBooksData even if no ISBN
-                book.googleBooksData = { thumbnailUrl: null, description: book.summary };
-                return; // Skip books without a usable ISBN
-            }
-
-            // Check cache first
-            if (bookApiDetailsCache[isbnToUse]) {
-                book.googleBooksData = bookApiDetailsCache[isbnToUse]; // Augment book object
-                return;
-            }
-
-            // Fetch from API if not in cache
-            const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbnToUse}`;
-            try {
-                const apiResponse = await fetch(apiUrl);
-                if (!apiResponse.ok) {
-                    console.error(`Google Books API HTTP error for ISBN ${isbnToUse}: ${apiResponse.status}`);
-                    // Store 'error' state to avoid re-fetching on next load if permanent API issue
-                    bookApiDetailsCache[isbnToUse] = { thumbnailUrl: null, description: book.summary, apiFetchError: true };
-                    book.googleBooksData = { thumbnailUrl: null, description: book.summary }; // Augment with empty data
-                    return;
+        // Fetch Google Books API details for each book
+        for (const bookId in allBooks) {
+            const book = allBooks[bookId];
+            if (!bookApiDetailsCache[bookId]) { // Check if already cached
+                // Use a proper identifier for Google Books search, e.g., ISBN or title/author
+                const query = book.isbn ? `isbn:${book.isbn[0]}` : `${book.title} ${book.primaryauthor}`;
+                const googleBooksData = await fetchGoogleBooksData(query);
+                if (googleBooksData) {
+                    book.googleBooksData = googleBooksData;
+                    bookApiDetailsCache[bookId] = googleBooksData; // Cache the data
                 }
-                const apiData = await apiResponse.json();
-
-                if (apiData.items && apiData.items.length > 0) {
-                    const volumeInfo = apiData.items[0].volumeInfo;
-                    const details = {
-                        thumbnailUrl: volumeInfo.imageLinks ? (volumeInfo.imageLinks.smallThumbnail || volumeInfo.imageLinks.thumbnail) : null,
-                        // Prefer API description, fallback to local summary, then empty string
-                        description: volumeInfo.description || book.summary || '',
-                        pageCount: volumeInfo.pageCount || null,
-                        publishedDate: volumeInfo.publishedDate || null
-                    };
-                    bookApiDetailsCache[isbnToUse] = details; // Store in cache
-                    book.googleBooksData = details; // Augment book object
-                } else {
-                    // Cache "no result" to avoid re-fetching for the same ISBN
-                    bookApiDetailsCache[isbnToUse] = { thumbnailUrl: null, description: book.summary || '', noApiResult: true };
-                    book.googleBooksData = { thumbnailUrl: null, description: book.summary || '' }; // Augment with empty data
-                }
-            } catch (apiError) {
-                console.error(`Error fetching Google Books data for ISBN ${isbnToUse}:`, apiError);
-                // Cache "error" state
-                bookApiDetailsCache[isbnToUse] = { thumbnailUrl: null, description: book.summary || '', apiFetchError: true };
-                book.googleBooksData = { thumbnailUrl: null, description: book.summary || '' }; // Augment with empty data
+            } else {
+                book.googleBooksData = bookApiDetailsCache[bookId]; // Use cached data
             }
-        });
-
-        // Wait for all API calls (or cache reads) to complete
-        await Promise.all(fetchDetailsPromises);
-        localStorage.setItem('bookApiDetailsCache', JSON.stringify(bookApiDetailsCache)); // Save cache to localStorage
-
-        // Load comparison history
-        const storedHistory = localStorage.getItem('bookComparisonHistory');
-        if (storedHistory) {
-            comparisonHistory = JSON.parse(storedHistory);
-        } else {
-            comparisonHistory = [];
         }
+        saveBookApiDetailsCache(); // Ensure this function exists and saves bookApiDetailsCache to local storage
 
-        // Now that all data (local and API) is loaded and processed, display elements
         displayNextComparison();
         displayRankedList();
     } catch (error) {
         console.error('Error loading books:', error);
-        displayMessage('Error loading book data. Please try refreshing.', 'error');
+        displayMessage('Error loading books: ' + error.message, 'error');
     }
 }
 
