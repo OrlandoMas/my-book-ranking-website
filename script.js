@@ -22,6 +22,7 @@ const importRankingsButton = document.getElementById('import-rankings-button');
 const cacheReminderMessage = document.getElementById('cache-reminder-message');
 const dismissCacheReminderButton = document.getElementById('dismiss-cache-reminder');
 const INITIAL_ELO = 1500; // Starting Elo rating for all books
+const SUMMARY_MAX_LENGTH = 300; // Adjust this number to your preference
 const K_FACTOR = 32;       // How much ratings change per game
 const book1Cover = book1Element.querySelector('.book-cover'); // ADD THIS LINE
 const book2Cover = book2Element.querySelector('.book-cover'); // ADD THIS LINE
@@ -250,39 +251,59 @@ book2Button.addEventListener('click', (event) => {
 
 // --- Step 7: Display the ranked list ---
 function displayRankedList() {
-    // Convert bookScores object into an array for sorting and filtering
-    const sortedBooks = allBooks
-        .filter(book => bookScores[book.books_id] !== undefined) // Ensure book has a score entry
-        .sort((a, b) => bookScores[b.books_id] - bookScores[a.books_id]); // Sort by Elo score (descending)
+    // Sort books by Elo score in descending order
+    const sortedBooks = Object.keys(bookScores)
+        .filter(id => allBooks.hasOwnProperty(id)) // Ensure book still exists in allBooks
+        .map(id => ({
+            ...allBooks[id],
+            score: bookScores[id]
+        }))
+        .sort((a, b) => b.score - a.score);
 
     rankedBookList.innerHTML = ''; // Clear previous list
 
     if (sortedBooks.length === 0) {
-        rankedBookList.innerHTML = '<li class="info-message">No books ranked yet. Start comparing!</li>';
+        rankedBookList.innerHTML = '<li>No books ranked yet.</li>';
         return;
     }
 
     sortedBooks.forEach((book, index) => {
-        const score = bookScores[book.books_id];
         const listItem = document.createElement('li');
         listItem.classList.add('ranked-book-item');
+
+        // Prepare the summary content: Use Google Books description if available, otherwise fallback to original summary.
+        // Strip HTML and truncate if needed.
+        const rawSummaryToUse = book.googleBooksData && book.googleBooksData.description ? book.googleBooksData.description : book.summary || '';
+        const cleanedSummary = stripHtmlTags(rawSummaryToUse);
+        let summaryContentHtml = '';
+
+        if (cleanedSummary.length > SUMMARY_MAX_LENGTH) {
+            const truncatedText = cleanedSummary.substring(0, SUMMARY_MAX_LENGTH).trim();
+            summaryContentHtml = `
+                <span class="truncated-text">${truncatedText}...</span>
+                <span class="full-text" style="display: none;">${cleanedSummary}</span>
+                <a href="#" class="read-more-link" data-action="expand">Read more</a>
+            `;
+        } else {
+            summaryContentHtml = cleanedSummary;
+        }
+
         listItem.innerHTML = `
           <div class="rank">${index + 1}.</div>
             <div class="book-details">
-              <img class="ranked-book-cover" src="${book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'images/default-cover.png'}" alt="Cover for ${book.title || 'Unknown Book'}
+              <img class="ranked-book-cover" src="${book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'image/default-cover.png'}" alt="Cover for ${book.title || 'Unknown Book'}">
               <div class="title-author-elo">
                 <span class="title">${book.title}</span> by <span class="author">${book.primaryauthor}</span>
               </div>
               <div class="summary-toggle">
                 <button class="toggle-summary-button">Show Summary</button>
               </div>
-              <div class="ranked-summary" style="display: none;">${stripHtmlTags(book.summary)}</div>
+              <div class="ranked-summary" style="display: none;">${summaryContentHtml}</div>
             </div>
         `;
         rankedBookList.appendChild(listItem);
-    }); // This correctly closes the forEach loop and its callback function.
-
-} // This correctly closes the displayRankedList function.
+    });
+}
 
 // --- Step 8: Save progress ---
 function saveRankingToLocalStorage() {
@@ -546,17 +567,41 @@ dismissCacheReminderButton.addEventListener('click', () => {
     displayMessage('Reminder dismissed. You can clear your browser\'s local storage to show it again.', 'info', 5000);
 });
 
-// Event listener for toggling summary visibility
+// Event listener for toggling summary visibility AND "Read more/Show less" within summary
 rankedBookList.addEventListener('click', (event) => {
+    // Handle "Show Summary" / "Hide Summary" button
     if (event.target.classList.contains('toggle-summary-button')) {
         const summaryElement = event.target.closest('.ranked-book-item').querySelector('.ranked-summary');
-        if (summaryElement.style.display === 'none') {
-            summaryElement.style.display = 'block';
-            event.target.textContent = 'Hide Summary';
-        } else {
-            summaryElement.style.display = 'none';
-            event.target.textContent = 'Show Summary';
+        if (summaryElement) { // Check if summaryElement exists
+            if (summaryElement.style.display === 'none') {
+                summaryElement.style.display = 'block';
+                event.target.textContent = 'Hide Summary';
+            } else {
+                summaryElement.style.display = 'none';
+                event.target.textContent = 'Show Summary';
+            }
+        }
+    }
+
+    // Handle "Read more" / "Show less" links within the summary itself
+    if (event.target.classList.contains('read-more-link')) {
+        event.preventDefault(); // Prevent default link behavior (jumping to top)
+        const rankedSummaryDiv = event.target.closest('.ranked-summary');
+        if (rankedSummaryDiv) { // Ensure the parent summary div exists
+            const truncatedTextSpan = rankedSummaryDiv.querySelector('.truncated-text');
+            const fullTextSpan = rankedSummaryDiv.querySelector('.full-text');
+
+            if (event.target.dataset.action === 'expand') {
+                truncatedTextSpan.style.display = 'none';
+                fullTextSpan.style.display = 'inline'; // Use inline to flow with text
+                event.target.textContent = 'Show less';
+                event.target.dataset.action = 'collapse';
+            } else { // action === 'collapse'
+                truncatedTextSpan.style.display = 'inline';
+                fullTextSpan.style.display = 'none';
+                event.target.textContent = 'Read more';
+                event.target.dataset.action = 'expand';
+            }
         }
     }
 });
-
