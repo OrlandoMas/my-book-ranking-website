@@ -30,6 +30,27 @@ const book2Cover = book2Element.querySelector('.book-cover'); // ADD THIS LINE
 
 let currentBooksToCompare = []; // Stores the two books currently being displayed
 
+async function fetchGoogleBooksData(query) {
+    try {
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        if (data.items && data.items.length > 0) {
+            const item = data.items[0].volumeInfo;
+            return {
+                title: item.title,
+                authors: item.authors ? item.authors.join(', ') : 'Unknown Author',
+                description: item.description || 'No description available.',
+                thumbnailUrl: item.imageLinks ? item.imageLinks.thumbnail : '',
+                infoLink: item.infoLink // Link to Google Books page
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching Google Books data:', error);
+        return null;
+    }
+}
+
 // --- Step 4: Load and display your book list ---
 async function loadBooks() {
     try {
