@@ -2,6 +2,7 @@ let allBooks = []; // Stores all books from JSON
 let comparisonHistory = []; // To store pairs of books compared and the winner
 let bookScores = {}; // To store the ranking score for each book
 let bookApiDetailsCache = {}; // Cache for storing fetched Google Books API details
+let currentBooksToCompare = [];
 
 const rankingInterface = document.getElementById('ranking-interface');
 const book1Element = document.getElementById('book-1');
@@ -92,7 +93,7 @@ async function loadBooks() {
                     book.googleBooksData = googleBooksData;
                     bookApiDetailsCache[bookId] = googleBooksData; // Cache the data
                 }
-                await delay(100);
+                await delay(250);
             } else {
                 book.googleBooksData = bookApiDetailsCache[bookId]; // Use cached data
             }
