@@ -2,7 +2,7 @@ let allBooks = []; // Stores all books from JSON
 let comparisonHistory = []; // To store pairs of books compared and the winner
 let bookScores = {}; // To store the ranking score for each book
 let bookApiDetailsCache = {}; // Cache for storing fetched Google Books API details
-let currentBooksToCompare = [];
+let currentBooksToCompare = []; // Stores the two books currently being displayed
 
 const rankingInterface = document.getElementById('ranking-interface');
 const book1Element = document.getElementById('book-1');
@@ -27,9 +27,6 @@ const SUMMARY_MAX_LENGTH = 300; // Adjust this number to your preference
 const K_FACTOR = 32;       // How much ratings change per game
 const book1Cover = book1Element.querySelector('.book-cover'); // ADD THIS LINE
 const book2Cover = book2Element.querySelector('.book-cover'); // ADD THIS LINE
-
-
-let currentBooksToCompare = []; // Stores the two books currently being displayed
 
 // Helper function to introduce a delay
 function delay(ms) {
