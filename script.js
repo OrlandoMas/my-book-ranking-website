@@ -90,7 +90,7 @@ async function loadBooks() {
                     book.googleBooksData = googleBooksData;
                     bookApiDetailsCache[bookId] = googleBooksData; // Cache the data
                 }
-                await delay(250);
+                await delay(500);
             } else {
                 book.googleBooksData = bookApiDetailsCache[bookId]; // Use cached data
             }
