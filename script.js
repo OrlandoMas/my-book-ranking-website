@@ -30,6 +30,11 @@ const book2Cover = book2Element.querySelector('.book-cover'); // ADD THIS LINE
 
 let currentBooksToCompare = []; // Stores the two books currently being displayed
 
+// Helper function to introduce a delay
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function fetchGoogleBooksData(query) {
     try {
         const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}`);
@@ -87,6 +92,7 @@ async function loadBooks() {
                     book.googleBooksData = googleBooksData;
                     bookApiDetailsCache[bookId] = googleBooksData; // Cache the data
                 }
+                await delay(100);
             } else {
                 book.googleBooksData = bookApiDetailsCache[bookId]; // Use cached data
             }
