@@ -54,6 +54,8 @@ async function fetchGoogleBooksData(query) {
 // --- Step 4: Load and display your book list ---
 async function loadBooks() {
     try {
+        loadBookApiDetailsCache();
+        
         const response = await fetch('librarything_Orlando_Mas.json');
         const data = await response.json();
         
@@ -265,6 +267,32 @@ function displayRankedList() {
         `;
         rankedBookList.appendChild(listItem);
     });
+}
+
+// Function to save the book API details cache to local storage
+function saveBookApiDetailsCache() {
+    try {
+        localStorage.setItem('bookApiDetailsCache', JSON.stringify(bookApiDetailsCache));
+        // console.log("Book API details cache saved."); // Optional: uncomment for debugging
+    } catch (e) {
+        console.error("Error saving book API details cache to local storage:", e);
+    }
+}
+
+// Function to load the book API details cache from local storage
+function loadBookApiDetailsCache() {
+    try {
+        const savedCache = localStorage.getItem('bookApiDetailsCache');
+        if (savedCache) {
+            bookApiDetailsCache = JSON.parse(savedCache);
+            // console.log("Book API details cache loaded."); // Optional: uncomment for debugging
+        }
+    } catch (e) {
+        console.error("Error loading book API details cache from local storage:", e);
+        // Clear corrupt cache if parsing fails
+        localStorage.removeItem('bookApiDetailsCache');
+        bookApiDetailsCache = {};
+    }
 }
 
 // --- Step 8: Save progress ---
