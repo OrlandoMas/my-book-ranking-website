@@ -108,24 +108,51 @@ async function loadBooks() {
 }
 
 // --- Step 5: Ranking interface ---
+// Function to get two random unique books that haven't been compared
 function getRandomUniqueBooks() {
-    if (allBooks.length < 2) {
+    const availableBookIds = Object.keys(allBooks).filter(id => {
+        // Ensure book has not been compared with the other in the last N rounds
+        // Implement comparison history logic here if desired, e.g.:
+        // return !comparisonHistory.some(c =>
+        //     (c.book1 === id && c.book2 === someOtherId) ||
+        //     (c.book2 === id && c.book1 === someOtherId)
+        // );
+        return true; // For now, assuming allBooks are initially available
+    });
+
+    if (availableBookIds.length < 2) {
+        noMoreBooksMessage.style.display = 'block';
+        rankingInterface.style.display = 'none';
         return null; // Not enough books to compare
     }
 
-    // Filter out books that have already been compared against all others,
-    // or simply if we've exhausted most comparison opportunities.
-    // For simplicity, let's just ensure we haven't compared THIS specific pair recently.
-    // A more robust system would track all pairwise comparisons.
-    
-    // Simple approach: pick two random books and ensure they are different
-    let book1, book2;
-    do {
-        book1 = allBooks[Math.floor(Math.random() * allBooks.length)];
-        book2 = allBooks[Math.floor(Math.random() * allBooks.length)];
-    } while (book1.books_id === book2.books_id); // Ensure they are different books
+    // Filter out books that have already been chosen for comparison in this session
+    const currentlyComparingIds = [book1Element.dataset.bookId, book2Element.dataset.bookId];
+    // Ensure currentlyComparingIds are actual IDs and are in availableBookIds
+    const eligibleBookIds = availableBookIds.filter(id => !currentlyComparingIds.includes(id));
 
-    return [book1, book2];
+    // Fallback if not enough eligible books after filtering:
+    // If we can't find 2 unique books that haven't been compared in this session,
+    // we can reset the session's comparison or just pick from all available.
+    let finalEligibleIds = eligibleBookIds;
+    if (eligibleBookIds.length < 2) {
+        finalEligibleIds = availableBookIds; // Fallback to all available books
+        // If still not enough, then there's a problem, or we truly ran out of unique pairs.
+        if (finalEligibleIds.length < 2) {
+            noMoreBooksMessage.style.display = 'block';
+            rankingInterface.style.display = 'none';
+            return null;
+        }
+    }
+
+    let book1Id, book2Id;
+    do {
+        book1Id = finalEligibleIds[Math.floor(Math.random() * finalEligibleIds.length)];
+        book2Id = finalEligibleIds[Math.floor(Math.random() * Math.min(finalEligibleIds.length, 100))]; // Cap random to prevent infinite loops on small sets
+    } while (book1Id === book2Id || !allBooks.hasOwnProperty(book1Id) || !allBooks.hasOwnProperty(book2Id)); // Ensure IDs exist in allBooks
+
+    // Corrected line: Return the IDs directly
+    return { book1: book1Id, book2: book2Id };
 }
 
 
