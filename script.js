@@ -90,7 +90,7 @@ async function loadBooks() {
                     book.googleBooksData = googleBooksData;
                     bookApiDetailsCache[bookId] = googleBooksData; // Cache the data
                 }
-                await delay(500);
+                await delay(1000);
             } else {
                 book.googleBooksData = bookApiDetailsCache[bookId]; // Use cached data
             }
@@ -155,16 +155,27 @@ function getRandomUniqueBooks() {
 
 
 function displayNextComparison() {
-    currentBooksToCompare = getRandomUniqueBooks();
+    const bookIdsToCompare = getRandomUniqueBooks(); // Get the object containing book IDs
 
-    if (!currentBooksToCompare) {
+    if (!bookIdsToCompare) { // If getRandomUniqueBooks returns null (no more books to compare)
         rankingInterface.style.display = 'none';
         noMoreBooksMessage.style.display = 'block';
         return;
     }
 
-    const [bookA, bookB] = currentBooksToCompare;
+    // Correctly extract book IDs from the returned object
+    const book1Id = bookIdsToCompare.book1;
+    const book2Id = bookIdsToCompare.book2;
 
+    // Retrieve the full book objects from your allBooks data structure
+    const bookA = allBooks[book1Id];
+    const bookB = allBooks[book2Id];
+
+    // Assign the actual book objects (as an array) to currentBooksToCompare for later use
+    // (e.g., by the recordPreference function)
+    currentBooksToCompare = [bookA, bookB];
+
+    // ... The rest of your displayNextComparison function follows from here ...
     // Set book 1 details
     book1Title.textContent = bookA.title || 'Unknown Title';
     book1Author.textContent = bookA.primaryauthor || 'Unknown Author';
