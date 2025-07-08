@@ -22,6 +22,8 @@ const importFileInput = document.getElementById('import-file-input');
 const importRankingsButton = document.getElementById('import-rankings-button');
 const cacheReminderMessage = document.getElementById('cache-reminder-message');
 const dismissCacheReminderButton = document.getElementById('dismiss-cache-reminder');
+const loadingIndicator = document.getElementById('loading-indicator');
+
 const INITIAL_ELO = 1500; // Starting Elo rating for all books
 const SUMMARY_MAX_LENGTH = 300; // Adjust this number to your preference
 const K_FACTOR = 32;       // How much ratings change per game
@@ -81,23 +83,25 @@ async function fetchGoogleBooksData(query, retries = 3, currentDelay = 1000) {
 
 // --- Step 4: Load and display your book list ---
 async function loadBooks() {
+    // Show the loading indicator at the very beginning
+    if (loadingIndicator) { // Check if the element exists
+        loadingIndicator.style.display = 'block';
+    }
+
     try {
         loadBookApiDetailsCache();
-        
+
         const response = await fetch('librarything_Orlando_Mas.json');
         const data = await response.json();
-        
-        // This is the CRITICAL line that was missing or incorrect!
+
         allBooks = data;
         console.log('loadBooks: allBooks after loading JSON:', allBooks); // Debug log
 
-        // Load scores from local storage
         const savedScores = localStorage.getItem('bookScores');
         if (savedScores) {
             bookScores = JSON.parse(savedScores);
             console.log('loadBooks: bookScores after initialization/load:', bookScores); // Debug log
         } else {
-            // Initialize scores if not found in local storage
             Object.keys(allBooks).forEach(id => {
                 bookScores[id] = INITIAL_ELO;
             });
@@ -107,26 +111,30 @@ async function loadBooks() {
         // Fetch Google Books API details for each book
         for (const bookId in allBooks) {
             const book = allBooks[bookId];
-            if (!bookApiDetailsCache[bookId]) { // Check if already cached
-                // Use a proper identifier for Google Books search, e.g., ISBN or title/author
+            if (!bookApiDetailsCache[bookId]) {
                 const query = book.isbn ? `isbn:${book.isbn[0]}` : `${book.title} ${book.primaryauthor}`;
                 const googleBooksData = await fetchGoogleBooksData(query);
                 if (googleBooksData) {
                     book.googleBooksData = googleBooksData;
-                    bookApiDetailsCache[bookId] = googleBooksData; // Cache the data
+                    bookApiDetailsCache[bookId] = googleBooksData;
                 }
-                // await delay(1000);
             } else {
-                book.googleBooksData = bookApiDetailsCache[bookId]; // Use cached data
+                book.googleBooksData = bookApiDetailsCache[bookId];
             }
         }
-        saveBookApiDetailsCache(); // Ensure this function exists and saves bookApiDetailsCache to local storage
+        saveBookApiDetailsCache();
 
         displayNextComparison();
         displayRankedList();
+
     } catch (error) {
         console.error('Error loading books:', error);
         displayMessage('Error loading books: ' + error.message, 'error');
+    } finally {
+        // Hide the loading indicator when loading is complete (or an error occurs)
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
     }
 }
 
