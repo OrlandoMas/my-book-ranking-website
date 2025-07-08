@@ -33,25 +33,50 @@ function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchGoogleBooksData(query) {
-    try {
-        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}`);
-        const data = await response.json();
-        if (data.items && data.items.length > 0) {
-            const item = data.items[0].volumeInfo;
-            return {
-                title: item.title,
-                authors: item.authors ? item.authors.join(', ') : 'Unknown Author',
-                description: item.description || 'No description available.',
-                thumbnailUrl: item.imageLinks ? item.imageLinks.thumbnail : '',
-                infoLink: item.infoLink // Link to Google Books page
-            };
+async function fetchGoogleBooksData(query, retries = 3, currentDelay = 1000) {
+    // Construct the URL for the Google Books API. Ensure you have an API key if necessary.
+    // For simplicity, assuming no API key is strictly required for basic searches or it's handled elsewhere.
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}`;
+
+    for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+            const response = await fetch(url);
+
+            if (response.status === 429) {
+                console.warn(`Attempt ${attempt + 1}: Too Many Requests (429). Retrying in ${currentDelay / 1000} seconds...`);
+                await delay(currentDelay);
+                currentDelay *= 2; // Double the delay for the next attempt
+                continue; // Go to the next iteration of the loop to retry
+            }
+
+            if (!response.ok) {
+                // For other non-OK responses (e.g., 404, 500), throw an error
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.items && data.items.length > 0) {
+                const item = data.items[0].volumeInfo;
+                return {
+                    title: item.title,
+                    authors: item.authors ? item.authors.join(', ') : 'Unknown Author',
+                    description: item.description || 'No description available.',
+                    thumbnailUrl: item.imageLinks ? item.imageLinks.thumbnail : 'images/default-cover.png',
+                    infoLink: item.infoLink // Link to Google Books page
+                };
+            } else {
+                return null; // No items found for the query
+            }
+        } catch (error) {
+            console.error(`Attempt ${attempt + 1}: Error fetching Google Books data for "${query}":`, error);
+            if (attempt < retries - 1) { // If not the last attempt, wait and retry
+                await delay(currentDelay);
+                currentDelay *= 2; // Double the delay for the next attempt
+            }
         }
-        return null;
-    } catch (error) {
-        console.error('Error fetching Google Books data:', error);
-        return null;
     }
+    console.error(`Failed to fetch Google Books data for "${query}" after ${retries} attempts.`);
+    return null; // Return null if all retries fail
 }
 
 // --- Step 4: Load and display your book list ---
@@ -90,7 +115,7 @@ async function loadBooks() {
                     book.googleBooksData = googleBooksData;
                     bookApiDetailsCache[bookId] = googleBooksData; // Cache the data
                 }
-                await delay(1000);
+                // await delay(1000);
             } else {
                 book.googleBooksData = bookApiDetailsCache[bookId]; // Use cached data
             }
@@ -200,9 +225,10 @@ function calculateExpectedScore(ratingA, ratingB) {
 
 // --- Step 6: Implement pairwise ranking ---
 function recordPreference(preferredBookId, otherBookId) {
-    const book1 = allBooks.find(b => b.books_id === preferredBookId);
-    const book2 = allBooks.find(b => b.books_id === otherBookId);
-
+    // Corrected: Access books directly from the allBooks object using their IDs
+    const book1 = allBooks[preferredBookId];
+    const book2 = allBooks[otherBookId];
+    
     if (!book1 || !book2) {
         console.error("Error: One of the books not found for recording preference.");
         displayMessage("Error recording preference.", "error");
@@ -456,14 +482,13 @@ function importRankingsFromFile(event) {
                 localStorage.setItem('bookRankingScores', JSON.stringify(bookScores));
                 localStorage.setItem('bookComparisonHistory', JSON.stringify(comparisonHistory));
 
-                // Re-initialize scores for all books if needed (important for newly imported books)
-                // This ensures allBooks has a score, even if 0, for the display
-                allBooks.forEach(book => {
-                    if (bookScores[book.books_id] === undefined) {
-                        bookScores[book.books_id] = 0;
+                // Corrected: Initialize scores for books present in allBooks but not in importedScores
+                Object.keys(allBooks).forEach(bookId => {
+                    // If a book from allBooks doesn't have a score after import, initialize it
+                    if (bookScores[bookId] === undefined) {
+                        bookScores[bookId] = INITIAL_ELO; // Initialize it with the default Elo
                     }
                 });
-
 
                 // Refresh the UI to reflect the imported data
                 displayRankedList(); // Regenerate and display the ranked list
@@ -505,9 +530,9 @@ function resetAllRankings() {
         localStorage.removeItem('bookComparisonHistory');
         bookScores = {}; // Reset in-memory scores
 
-        // Re-initialize all books to their initial Elo rating
-        allBooks.forEach(book => {
-            bookScores[book.books_id] = INITIAL_ELO; // <-- CHANGE THIS LINE
+        // Corrected: Iterate over the keys (IDs) of allBooks and initialize their scores
+        Object.keys(allBooks).forEach(id => {
+            bookScores[id] = INITIAL_ELO;
         });
 
         comparisonHistory = []; // Reset in-memory history
