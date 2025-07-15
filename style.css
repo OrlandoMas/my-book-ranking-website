@@ -293,20 +293,23 @@ footer {
 /* --- Book Detail Modal Styles --- */
 
 .modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1000; /* Sit on top (higher than any other elements) */
+    display: none; /* Hidden by default - This MUST be the final 'display' value for the default state */
+    position: fixed;
+    z-index: 1000;
     left: 0;
     top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.7); /* Black w/ opacity for overlay */
-    
-    /* Flexbox for centering modal content */
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.7);
+    /* The flexbox centering properties will now be moved to .modal.show */
+}
+
+/* NEW: This class makes the modal visible and centers its content */
+.modal.show {
+    display: flex; /* This makes the modal visible */
+    justify-content: center; /* Centers content horizontally */
+    align-items: center;   /* Centers content vertically */
 }
 
 .modal-content {

@@ -271,8 +271,8 @@ function showBookDetailModal(bookId) {
         modalBookLink.style.display = 'none'; // Hide the link if not available
     }
 
-    // Display the modal
-    bookDetailModal.style.display = 'flex'; // Use 'flex' as per your CSS to center it
+    // Display the modal by adding the 'show' class
+    bookDetailModal.classList.add('show');
 }
 
 // Helper function to calculate expected score between two players (books)
@@ -738,24 +738,21 @@ rankedBookList.addEventListener('click', (event) => {
     }
 });
 
-// NEW: Event listener to close the modal when the close button is clicked
 closeModalButton.addEventListener('click', () => {
     if (bookDetailModal) {
-        bookDetailModal.style.display = 'none';
+        bookDetailModal.classList.remove('show');
     }
 });
 
-// NEW: Event listener to close the modal when clicking outside the modal content
 bookDetailModal.addEventListener('click', (event) => {
-    // If the click target is the modal itself (not its content), close it
-    if (event.target === bookDetailModal) {
-        bookDetailModal.style.display = 'none';
+    if (event.target === bookDetailModal) { // Only close if clicking the background, not content
+        bookDetailModal.classList.remove('show');
     }
 });
 
-// NEW: Event listener to close the modal when the Escape key is pressed
 document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && bookDetailModal.style.display === 'flex') { // Check if modal is open
-        bookDetailModal.style.display = 'none';
+    // Check if the modal is currently open by checking for the 'show' class
+    if (event.key === 'Escape' && bookDetailModal.classList.contains('show')) {
+        bookDetailModal.classList.remove('show');
     }
 });
