@@ -219,6 +219,7 @@ function displayNextComparison() {
 
     // ... The rest of your displayNextComparison function follows from here ...
     // Set book 1 details
+    book1Element.dataset.bookId = bookA.books_id;
     book1Title.textContent = bookA.title || 'Unknown Title';
     book1Author.textContent = bookA.primaryauthor || 'Unknown Author';
     book1Button.dataset.bookId = bookA.books_id;
@@ -227,6 +228,7 @@ function displayNextComparison() {
     book1Cover.alt = `Cover for ${bookA.title}`;
     
     // Set book 2 details
+    book2Element.dataset.bookId = bookB.books_id;
     book2Title.textContent = bookB.title || 'Unknown Title';
     book2Author.textContent = bookB.primaryauthor || 'Unknown Author';
     book2Button.dataset.bookId = bookB.books_id;
@@ -754,5 +756,31 @@ document.addEventListener('keydown', (event) => {
     // Check if the modal is currently open by checking for the 'show' class
     if (event.key === 'Escape' && bookDetailModal.classList.contains('show')) {
         bookDetailModal.classList.remove('show');
+    }
+});
+
+// NEW: Event listener to open book detail modal when Book 1 card is clicked
+book1Element.addEventListener('click', (event) => {
+    // If the click target is the 'prefer-button', let its own listener handle the click
+    if (event.target.classList.contains('prefer-button')) {
+        return;
+    }
+    // Otherwise, open the modal for the book associated with this card
+    const bookId = book1Element.dataset.bookId;
+    if (bookId) {
+        showBookDetailModal(bookId);
+    }
+});
+
+// NEW: Event listener to open book detail modal when Book 2 card is clicked
+book2Element.addEventListener('click', (event) => {
+    // If the click target is the 'prefer-button', let its own listener handle the click
+    if (event.target.classList.contains('prefer-button')) {
+        return;
+    }
+    // Otherwise, open the modal for the book associated with this card
+    const bookId = book2Element.dataset.bookId;
+    if (bookId) {
+        showBookDetailModal(bookId);
     }
 });
