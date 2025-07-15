@@ -30,6 +30,15 @@ const K_FACTOR = 32;       // How much ratings change per game
 const book1Cover = book1Element.querySelector('.book-cover'); // ADD THIS LINE
 const book2Cover = book2Element.querySelector('.book-cover'); // ADD THIS LINE
 
+const bookDetailModal = document.getElementById('book-detail-modal');
+const closeModalButton = document.querySelector('.close-button');
+const modalBookCover = document.getElementById('modal-book-cover');
+const modalBookTitle = document.getElementById('modal-book-title');
+const modalBookAuthor = document.getElementById('modal-book-author');
+const modalBookScore = document.getElementById('modal-book-score');
+const modalBookDescription = document.getElementById('modal-book-description');
+const modalBookLink = document.getElementById('modal-book-link');
+
 // Helper function to introduce a delay
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -226,6 +235,46 @@ function displayNextComparison() {
     book2Cover.alt = `Cover for ${bookB.title}`;
 }
 
+/**
+ * Displays the book detail modal with information for a specific book.
+ * @param {string} bookId The ID of the book to display.
+ */
+function showBookDetailModal(bookId) {
+    const book = allBooks[bookId]; // Retrieve the full book object
+
+    if (!book) {
+        console.error("Book not found for modal:", bookId);
+        displayMessage("Error: Book details could not be loaded.", "error");
+        return;
+    }
+
+    // Populate modal content
+    modalBookCover.src = book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'images/default-cover.png';
+    modalBookCover.alt = `Cover for ${book.title}`;
+    modalBookTitle.textContent = book.title || 'Unknown Title';
+    modalBookAuthor.textContent = book.googleBooksData && book.googleBooksData.authors ? book.googleBooksData.authors : (book.primaryauthor || 'Unknown Author'); // Prefer Google Books authors if available
+    modalBookScore.textContent = `Elo Score: ${Math.round(bookScores[bookId])}`;
+
+    // Handle description and "Read more" for modal if needed (similar to ranked list)
+    let descriptionText = book.googleBooksData && book.googleBooksData.description ? stripHtmlTags(book.googleBooksData.description) : (book.books_description || 'No description available.');
+    
+    // For now, let's show the full description in the modal.
+    // If you want truncation here too, you'd apply similar logic as in displayRankedList.
+    modalBookDescription.innerHTML = descriptionText;
+    modalBookDescription.scrollTop = 0; // Reset scroll position for long descriptions
+
+    // Set Google Books link
+    if (book.googleBooksData && book.googleBooksData.infoLink) {
+        modalBookLink.href = book.googleBooksData.infoLink;
+        modalBookLink.style.display = 'inline-block'; // Show the link
+    } else {
+        modalBookLink.style.display = 'none'; // Hide the link if not available
+    }
+
+    // Display the modal
+    bookDetailModal.style.display = 'flex'; // Use 'flex' as per your CSS to center it
+}
+
 // Helper function to calculate expected score between two players (books)
 function calculateExpectedScore(ratingA, ratingB) {
     return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
@@ -310,6 +359,7 @@ function displayRankedList() {
     sortedBooks.forEach((book, index) => {
         const listItem = document.createElement('li');
         listItem.classList.add('ranked-book-item');
+        listItem.dataset.bookId = book.books_id;
 
         // Prepare the summary content: Use Google Books description if available, otherwise fallback to original summary.
         // Strip HTML and truncate if needed.
@@ -668,5 +718,44 @@ rankedBookList.addEventListener('click', (event) => {
                 event.target.dataset.action = 'expand';
             }
         }
+    }
+});
+
+// NEW: Event listener to open book detail modal when a ranked book is clicked
+rankedBookList.addEventListener('click', (event) => {
+    // Ensure the click was on a ranked book item or an element within it that has a book-id
+    const rankedBookItem = event.target.closest('.ranked-book-item');
+    if (rankedBookItem) {
+        // Prevent default behavior if clicking a link or button inside the item that shouldn't open modal
+        if (event.target.classList.contains('toggle-summary-button') || event.target.classList.contains('read-more-link')) {
+            return; // Already handled by existing listeners
+        }
+
+        const bookId = rankedBookItem.dataset.bookId;
+        if (bookId) {
+            showBookDetailModal(bookId);
+        }
+    }
+});
+
+// NEW: Event listener to close the modal when the close button is clicked
+closeModalButton.addEventListener('click', () => {
+    if (bookDetailModal) {
+        bookDetailModal.style.display = 'none';
+    }
+});
+
+// NEW: Event listener to close the modal when clicking outside the modal content
+bookDetailModal.addEventListener('click', (event) => {
+    // If the click target is the modal itself (not its content), close it
+    if (event.target === bookDetailModal) {
+        bookDetailModal.style.display = 'none';
+    }
+});
+
+// NEW: Event listener to close the modal when the Escape key is pressed
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && bookDetailModal.style.display === 'flex') { // Check if modal is open
+        bookDetailModal.style.display = 'none';
     }
 });
