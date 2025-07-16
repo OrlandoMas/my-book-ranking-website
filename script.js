@@ -5,6 +5,8 @@ let bookScores = {}; // To store the ranking score for each book
 let bookApiDetailsCache = {}; // Cache for storing fetched Google Books API details
 let currentBooksToCompare = []; // Stores the two books currently being displayed
 
+document.addEventListener('DOMContentLoaded', () => {
+
 // DOM Element References
 const rankingInterface = document.getElementById('ranking-interface');
 const book1Element = document.getElementById('book-1');
@@ -38,6 +40,16 @@ const modalBookLink = document.getElementById('modal-book-link');
 // Filter and Sort Elements - **THESE ARE CRUCIAL FOR YOUR ERROR**
 const filterInput = document.getElementById('filter-input');
 const sortSelect = document.getElementById('sort-select');
+
+// Only add the event listener if closeModalButton is not null
+    if (closeModalButton) {
+        closeModalButton.addEventListener('click', () => {
+            if (bookDetailModal) {
+                bookDetailModal.style.display = 'none';
+            }
+        });
+    }
+
 
 // --- Utility Functions (assuming these are already defined in your script.js) ---
 function displayMessage(message, type = 'info', duration = 3000) {
@@ -88,24 +100,29 @@ function loadRankings() {
 
 async function fetchBooks() {
     try {
-        const response = await fetch('librarything_Orlando_Mas.json'); // Make sure books.json is in the same directory
+        // Ensure this path is correct!
+        const response = await fetch('librarything_Orlando_Mas.json');
+        console.log('Raw fetch response:', response); // Check response status, etc.
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        allBooks = await response.json();
-        // Initialize scores for new books
-        allBooks.forEach(book => {
-            if (!bookScores[book.id]) {
-                bookScores[book.id] = { ...book, elo: 1500 }; // Default Elo score
-            } else {
-                // Update existing book with new details if any, but keep existing Elo
-                bookScores[book.id] = { ...book, elo: bookScores[book.id].elo };
-            }
-        });
-        displayMessage(`${allBooks.length} books loaded!`, 'success');
+        const data = await response.json();
+        console.log('Parsed JSON data:', data); // Check the structure of 'data'
+
+        if (!Array.isArray(data)) {
+            console.error("Fetched data is not an array:", data);
+            // Handle this case, perhaps by setting allBooks to an empty array
+            // and displaying a message to the user.
+            allBooks = [];
+            return;
+        }
+        allBooks = data;
+        // ... rest of your fetchBooks function
     } catch (error) {
-        console.error('Error loading books:', error);
-        displayMessage(`Error loading books: ${error.message}. Please check 'librarything_Orlando_Mas.json'.`, 'error');
+        console.error("Error loading books:", error);
+        messageArea.textContent = `Failed to load books: ${error.message}. Please check your JSON file.`;
+        loadingIndicator.style.display = 'none';
     }
 }
 
