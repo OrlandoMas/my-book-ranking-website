@@ -1,9 +1,11 @@
+// Variable declarations - Ensure these are at the very top of your script.js
 let allBooks = []; // Stores all books from JSON
 let comparisonHistory = []; // To store pairs of books compared and the winner
 let bookScores = {}; // To store the ranking score for each book
 let bookApiDetailsCache = {}; // Cache for storing fetched Google Books API details
 let currentBooksToCompare = []; // Stores the two books currently being displayed
 
+// DOM Element References
 const rankingInterface = document.getElementById('ranking-interface');
 const book1Element = document.getElementById('book-1');
 const book2Element = document.getElementById('book-2');
@@ -22,711 +24,377 @@ const importFileInput = document.getElementById('import-file-input');
 const importRankingsButton = document.getElementById('import-rankings-button');
 const cacheReminderMessage = document.getElementById('cache-reminder-message');
 const dismissCacheReminderButton = document.getElementById('dismiss-cache-reminder');
-const loadingIndicator = document.getElementById('loading-indicator');
 
-// NEW: References for filter and sort controls
-const filterInput = document.getElementById('filter-input');
-const sortSelect = document.getElementById('sort-select');
-
-const INITIAL_ELO = 1500; // Starting Elo rating for all books
-const SUMMARY_MAX_LENGTH = 300; // Adjust this number to your preference
-const K_FACTOR = 32;       // How much ratings change per game
-const book1Cover = book1Element.querySelector('.book-cover'); // ADD THIS LINE
-const book2Cover = book2Element.querySelector('.book-cover'); // ADD THIS LINE
-
+// Modal Elements - Ensure these are correctly referenced if they exist in HTML
 const bookDetailModal = document.getElementById('book-detail-modal');
-const closeModalButton = document.querySelector('.close-button');
-const modalBookCover = document.getElementById('modal-book-cover');
+const closeModalButton = bookDetailModal ? bookDetailModal.querySelector('.close-button') : null;
 const modalBookTitle = document.getElementById('modal-book-title');
 const modalBookAuthor = document.getElementById('modal-book-author');
 const modalBookScore = document.getElementById('modal-book-score');
 const modalBookDescription = document.getElementById('modal-book-description');
+const modalBookCover = document.getElementById('modal-book-cover');
 const modalBookLink = document.getElementById('modal-book-link');
 
-// Helper function to introduce a delay
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+// Filter and Sort Elements - **THESE ARE CRUCIAL FOR YOUR ERROR**
+const filterInput = document.getElementById('filter-input');
+const sortSelect = document.getElementById('sort-select');
+
+// --- Utility Functions (assuming these are already defined in your script.js) ---
+function displayMessage(message, type = 'info', duration = 3000) {
+    const msgElement = document.createElement('div');
+    msgElement.className = `message ${type}`;
+    msgElement.textContent = message;
+    messageArea.appendChild(msgElement);
+
+    setTimeout(() => {
+        msgElement.remove();
+    }, duration);
 }
 
-async function fetchGoogleBooksData(query, retries = 3, currentDelay = 1000) {
-    // Construct the URL for the Google Books API. Ensure you have an API key if necessary.
-    // For simplicity, assuming no API key is strictly required for basic searches or it's handled elsewhere.
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}`;
+function calculateElo(ratingA, ratingB, winner) {
+    const K = 32;
+    const expectedScoreA = 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
+    const expectedScoreB = 1 / (1 + Math.pow(10, (ratingA - ratingB) / 400));
 
-    for (let attempt = 0; attempt < retries; attempt++) {
-        try {
-            const response = await fetch(url);
+    let newRatingA, newRatingB;
 
-            if (response.status === 429) {
-                console.warn(`Attempt ${attempt + 1}: Too Many Requests (429). Retrying in ${currentDelay / 1000} seconds...`);
-                await delay(currentDelay);
-                currentDelay *= 2; // Double the delay for the next attempt
-                continue; // Go to the next iteration of the loop to retry
-            }
-
-            if (!response.ok) {
-                // For other non-OK responses (e.g., 404, 500), throw an error
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            if (data.items && data.items.length > 0) {
-                const item = data.items[0].volumeInfo;
-                return {
-                    title: item.title,
-                    authors: item.authors ? item.authors.join(', ') : 'Unknown Author',
-                    description: item.description || 'No description available.',
-                    thumbnailUrl: item.imageLinks ? item.imageLinks.thumbnail : 'images/default-cover.png',
-                    infoLink: item.infoLink // Link to Google Books page
-                };
-            } else {
-                return null; // No items found for the query
-            }
-        } catch (error) {
-            console.error(`Attempt ${attempt + 1}: Error fetching Google Books data for "${query}":`, error);
-            if (attempt < retries - 1) { // If not the last attempt, wait and retry
-                await delay(currentDelay);
-                currentDelay *= 2; // Double the delay for the next attempt
-            }
-        }
+    if (winner === 'A') {
+        newRatingA = ratingA + K * (1 - expectedScoreA);
+        newRatingB = ratingB + K * (0 - expectedScoreB);
+    } else {
+        newRatingA = ratingA + K * (0 - expectedScoreA);
+        newRatingB = ratingB + K * (1 - expectedScoreB);
     }
-    console.error(`Failed to fetch Google Books data for "${query}" after ${retries} attempts.`);
-    return null; // Return null if all retries fail
+    return { newRatingA, newRatingB };
 }
 
-// --- Step 4: Load and display your book list ---
-async function loadBooks() {
-    // Show the loading indicator at the very beginning
-    if (loadingIndicator) { // Check if the element exists
-        loadingIndicator.style.display = 'block';
-    }
+function saveRankings() {
+    localStorage.setItem('bookScores', JSON.stringify(bookScores));
+    localStorage.setItem('comparisonHistory', JSON.stringify(comparisonHistory));
+    displayMessage('Rankings saved automatically!', 'success');
+}
 
+function loadRankings() {
+    const savedScores = localStorage.getItem('bookScores');
+    const savedHistory = localStorage.getItem('comparisonHistory');
+    if (savedScores) {
+        bookScores = JSON.parse(savedScores);
+    }
+    if (savedHistory) {
+        comparisonHistory = JSON.parse(savedHistory);
+    }
+    displayMessage('Rankings loaded!', 'info');
+}
+
+async function fetchBooks() {
     try {
-        loadBookApiDetailsCache();
-
-        const response = await fetch('librarything_Orlando_Mas.json');
-        const data = await response.json();
-
-        allBooks = data;
-        console.log('loadBooks: allBooks after loading JSON:', allBooks); // Debug log
-
-        const savedScores = localStorage.getItem('bookScores');
-        if (savedScores) {
-            bookScores = JSON.parse(savedScores);
-            console.log('loadBooks: bookScores after initialization/load:', bookScores); // Debug log
-        } else {
-            Object.keys(allBooks).forEach(id => {
-                bookScores[id] = INITIAL_ELO;
-            });
-            console.log('loadBooks: bookScores after initialization/load:', bookScores); // Debug log
+        const response = await fetch('books.json'); // Make sure books.json is in the same directory
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-
-        // Fetch Google Books API details for each book
-        for (const bookId in allBooks) {
-            const book = allBooks[bookId];
-            if (!bookApiDetailsCache[bookId]) {
-                const query = book.isbn ? `isbn:${book.isbn[0]}` : `${book.title} ${book.primaryauthor}`;
-                const googleBooksData = await fetchGoogleBooksData(query);
-                if (googleBooksData) {
-                    book.googleBooksData = googleBooksData;
-                    bookApiDetailsCache[bookId] = googleBooksData;
-                }
+        allBooks = await response.json();
+        // Initialize scores for new books
+        allBooks.forEach(book => {
+            if (!bookScores[book.id]) {
+                bookScores[book.id] = { ...book, elo: 1500 }; // Default Elo score
             } else {
-                book.googleBooksData = bookApiDetailsCache[bookId];
+                // Update existing book with new details if any, but keep existing Elo
+                bookScores[book.id] = { ...book, elo: bookScores[book.id].elo };
             }
-        }
-        saveBookApiDetailsCache();
-
-        displayNextComparison();
-        updateRankedListDisplay();
-
+        });
+        displayMessage(`${allBooks.length} books loaded!`, 'success');
     } catch (error) {
         console.error('Error loading books:', error);
-        displayMessage('Error loading books: ' + error.message, 'error');
-    } finally {
-        // Hide the loading indicator when loading is complete (or an error occurs)
-        if (loadingIndicator) {
-            loadingIndicator.style.display = 'none';
-        }
+        displayMessage(`Error loading books: ${error.message}. Please check 'books.json'.`, 'error');
     }
 }
 
-// --- Step 5: Ranking interface ---
-// Function to get two random unique books that haven't been compared
-function getRandomUniqueBooks() {
-    const availableBookIds = Object.keys(allBooks).filter(id => {
-        // Ensure book has not been compared with the other in the last N rounds
-        // Implement comparison history logic here if desired, e.g.:
-        // return !comparisonHistory.some(c =>
-        //     (c.book1 === id && c.book2 === someOtherId) ||
-        //     (c.book2 === id && c.book1 === someOtherId)
-        // );
-        return true; // For now, assuming allBooks are initially available
-    });
+async function loadBooks() {
+    document.getElementById('loading-indicator').style.display = 'block'; // Show loading
+    await fetchBooks();
+    loadRankings(); // Load saved scores after fetching fresh book list
+    displayBooksForComparison();
+    // updateRankedListDisplay(); // This call is now handled by applyFiltersAndSorting within DOMContentLoaded
+    document.getElementById('loading-indicator').style.display = 'none'; // Hide loading
+}
 
-    if (availableBookIds.length < 2) {
-        noMoreBooksMessage.style.display = 'block';
-        rankingInterface.style.display = 'none';
+function getNextComparison() {
+    const unrankedBooks = allBooks.filter(book => !bookScores[book.id] || bookScores[book.id].elo === 1500);
+
+    if (unrankedBooks.length >= 2) {
+        // Prioritize unranked books for initial comparisons
+        const bookA = unrankedBooks[Math.floor(Math.random() * unrankedBooks.length)];
+        let bookB;
+        do {
+            bookB = unrankedBooks[Math.floor(Math.random() * unrankedBooks.length)];
+        } while (bookA.id === bookB.id);
+        return [bookA, bookB];
+    } else if (allBooks.length >= 2) {
+        // If few unranked books left, pick two random books ensuring they are different
+        let bookA, bookB;
+        do {
+            bookA = allBooks[Math.floor(Math.random() * allBooks.length)];
+            bookB = allBooks[Math.floor(Math.random() * allBooks.length)];
+        } while (bookA.id === bookB.id);
+        return [bookA, bookB];
+    } else {
         return null; // Not enough books to compare
     }
-
-    // Filter out books that have already been chosen for comparison in this session
-    const currentlyComparingIds = [book1Element.dataset.bookId, book2Element.dataset.bookId];
-    // Ensure currentlyComparingIds are actual IDs and are in availableBookIds
-    const eligibleBookIds = availableBookIds.filter(id => !currentlyComparingIds.includes(id));
-
-    // Fallback if not enough eligible books after filtering:
-    // If we can't find 2 unique books that haven't been compared in this session,
-    // we can reset the session's comparison or just pick from all available.
-    let finalEligibleIds = eligibleBookIds;
-    if (eligibleBookIds.length < 2) {
-        finalEligibleIds = availableBookIds; // Fallback to all available books
-        // If still not enough, then there's a problem, or we truly ran out of unique pairs.
-        if (finalEligibleIds.length < 2) {
-            noMoreBooksMessage.style.display = 'block';
-            rankingInterface.style.display = 'none';
-            return null;
-        }
-    }
-
-    let book1Id, book2Id;
-    do {
-        book1Id = finalEligibleIds[Math.floor(Math.random() * finalEligibleIds.length)];
-        book2Id = finalEligibleIds[Math.floor(Math.random() * Math.min(finalEligibleIds.length, 100))]; // Cap random to prevent infinite loops on small sets
-    } while (book1Id === book2Id || !allBooks.hasOwnProperty(book1Id) || !allBooks.hasOwnProperty(book2Id)); // Ensure IDs exist in allBooks
-
-    // Corrected line: Return the IDs directly
-    return { book1: book1Id, book2: book2Id };
 }
 
 
-function displayNextComparison() {
-    const bookIdsToCompare = getRandomUniqueBooks(); // Get the object containing book IDs
+function displayBooksForComparison() {
+    currentBooksToCompare = getNextComparison();
 
-    if (!bookIdsToCompare) { // If getRandomUniqueBooks returns null (no more books to compare)
+    if (currentBooksToCompare) {
+        rankingInterface.style.display = 'block';
+        noMoreBooksMessage.style.display = 'none';
+
+        const [bookA, bookB] = currentBooksToCompare;
+
+        book1Element.dataset.bookId = bookA.id;
+        book1Title.textContent = bookA.title;
+        book1Author.textContent = bookA.author;
+        book1Element.querySelector('.book-cover').src = bookA.cover || 'images/default-cover.png'; // Use default if no cover
+
+        book2Element.dataset.bookId = bookB.id;
+        book2Title.textContent = bookB.title;
+        book2Author.textContent = bookB.author;
+        book2Element.querySelector('.book-cover').src = bookB.cover || 'images/default-cover.png'; // Use default if no cover
+    } else {
         rankingInterface.style.display = 'none';
         noMoreBooksMessage.style.display = 'block';
+        displayMessage('All books have been compared, or there are not enough books to compare.', 'info');
+    }
+}
+
+
+function handlePreference(winnerId, loserId) {
+    const winnerBook = bookScores[winnerId];
+    const loserBook = bookScores[loserId];
+
+    if (!winnerBook || !loserBook) {
+        displayMessage('Error: Selected book not found in scores.', 'error');
         return;
     }
 
-    // Correctly extract book IDs from the returned object
-    const book1Id = bookIdsToCompare.book1;
-    const book2Id = bookIdsToCompare.book2;
+    const { newRatingA, newRatingB } = calculateElo(winnerBook.elo, loserBook.elo, 'A'); // 'A' is the winner
 
-    // Retrieve the full book objects from your allBooks data structure
-    const bookA = allBooks[book1Id];
-    const bookB = allBooks[book2Id];
+    winnerBook.elo = newRatingA;
+    loserBook.elo = newRatingB;
 
-    // Assign the actual book objects (as an array) to currentBooksToCompare for later use
-    // (e.g., by the recordPreference function)
-    currentBooksToCompare = [bookA, bookB];
-
-    // ... The rest of your displayNextComparison function follows from here ...
-    // Set book 1 details
-    book1Element.dataset.bookId = bookA.books_id;
-    book1Title.textContent = bookA.title || 'Unknown Title';
-    book1Author.textContent = bookA.primaryauthor || 'Unknown Author';
-    book1Button.dataset.bookId = bookA.books_id;
-    // Set book 1 cover (using googleBooksData)
-    book1Cover.src = bookA.googleBooksData && bookA.googleBooksData.thumbnailUrl ? bookA.googleBooksData.thumbnailUrl : 'images/default-cover.png';
-    book1Cover.alt = `Cover for ${bookA.title}`;
-    
-    // Set book 2 details
-    book2Element.dataset.bookId = bookB.books_id;
-    book2Title.textContent = bookB.title || 'Unknown Title';
-    book2Author.textContent = bookB.primaryauthor || 'Unknown Author';
-    book2Button.dataset.bookId = bookB.books_id;
-    // Set book 2 cover (using googleBooksData)
-    book2Cover.src = bookB.googleBooksData && bookB.googleBooksData.thumbnailUrl ? bookB.googleBooksData.thumbnailUrl : 'images/default-cover.png';
-    book2Cover.alt = `Cover for ${bookB.title}`;
+    comparisonHistory.push({ winner: winnerId, loser: loserId, timestamp: new Date().toISOString() });
+    saveRankings();
+    updateRankedListDisplay();
+    displayBooksForComparison();
 }
 
-/**
- * Displays the book detail modal with information for a specific book.
- * @param {string} bookId The ID of the book to display.
- */
-function showBookDetailModal(bookId) {
-    const book = allBooks[bookId]; // Retrieve the full book object
-
-    if (!book) {
-        console.error("Book not found for modal:", bookId);
-        displayMessage("Error: Book details could not be loaded.", "error");
+function updateRankedListDisplay(filteredAndSortedBooks = null) {
+    if (!rankedBookList) {
+        console.error("Error: rankedBookList element not found.");
         return;
     }
-
-    // Populate modal content
-    modalBookCover.src = book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'images/default-cover.png';
-    modalBookCover.alt = `Cover for ${book.title}`;
-    modalBookTitle.textContent = book.title || 'Unknown Title';
-    modalBookAuthor.textContent = book.googleBooksData && book.googleBooksData.authors ? book.googleBooksData.authors : (book.primaryauthor || 'Unknown Author'); // Prefer Google Books authors if available
-    modalBookScore.textContent = `Elo Score: ${Math.round(bookScores[bookId])}`;
-
-    // Handle description and "Read more" for modal if needed (similar to ranked list)
-    let descriptionText = book.googleBooksData && book.googleBooksData.description ? stripHtmlTags(book.googleBooksData.description) : (book.books_description || 'No description available.');
-    
-    // For now, let's show the full description in the modal.
-    // If you want truncation here too, you'd apply similar logic as in displayRankedList.
-    modalBookDescription.innerHTML = descriptionText;
-    modalBookDescription.scrollTop = 0; // Reset scroll position for long descriptions
-
-    // Set Google Books link
-    if (book.googleBooksData && book.googleBooksData.infoLink) {
-        modalBookLink.href = book.googleBooksData.infoLink;
-        modalBookLink.style.display = 'inline-block'; // Show the link
-    } else {
-        modalBookLink.style.display = 'none'; // Hide the link if not available
-    }
-
-    // Display the modal by adding the 'show' class
-    bookDetailModal.classList.add('show');
-}
-
-// Helper function to calculate expected score between two players (books)
-function calculateExpectedScore(ratingA, ratingB) {
-    return 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
-}
-
-// --- Step 6: Implement pairwise ranking ---
-function recordPreference(preferredBookId, otherBookId) {
-    // Corrected: Access books directly from the allBooks object using their IDs
-    const book1 = allBooks[preferredBookId];
-    const book2 = allBooks[otherBookId];
-    
-    if (!book1 || !book2) {
-        console.error("Error: One of the books not found for recording preference.");
-        displayMessage("Error recording preference.", "error");
-        return;
-    }
-
-    // Get current Elo ratings
-    let ratingA = bookScores[preferredBookId];
-    let ratingB = bookScores[otherBookId];
-
-    // Calculate expected scores
-    const expectedScoreA = calculateExpectedScore(ratingA, ratingB);
-    const expectedScoreB = calculateExpectedScore(ratingB, ratingA); // Or 1 - expectedScoreA
-
-    // Determine actual scores
-    const actualScoreA = 1; // Preferred book wins
-    const actualScoreB = 0; // Other book loses
-
-    // Update ratings using the Elo formula
-    ratingA = ratingA + K_FACTOR * (actualScoreA - expectedScoreA);
-    ratingB = ratingB + K_FACTOR * (actualScoreB - expectedScoreB);
-
-    // Store updated ratings (round to avoid long decimals)
-    bookScores[preferredBookId] = Math.round(ratingA);
-    bookScores[otherBookId] = Math.round(ratingB);
-
-    // Store comparison history
-    comparisonHistory.push({
-        winnerId: preferredBookId,
-        loserId: otherBookId,
-        timestamp: new Date().toISOString()
-    });
-
-    // Save to localStorage
-    localStorage.setItem('bookRankingScores', JSON.stringify(bookScores));
-    localStorage.setItem('bookComparisonHistory', JSON.stringify(comparisonHistory));
-
-    displayNextComparison();
-    updateRankedListDisplay(); // Refresh the ranked list with new Elo scores
-}
-
-book1Button.addEventListener('click', (event) => {
-    // When book1 is preferred, book2 is the other book
-    recordPreference(currentBooksToCompare[0].books_id, currentBooksToCompare[1].books_id);
-});
-
-book2Button.addEventListener('click', (event) => {
-    // When book2 is preferred, book1 is the other book
-    recordPreference(currentBooksToCompare[1].books_id, currentBooksToCompare[0].books_id);
-});
-
-
-/**
- * Displays the ranked list of books.
- * @param {Array<Object>} [booksToDisplay=null] - Optional array of books to display.
- * If null or undefined, it will use and sort `allBooks`.
- */
-function displayRankedList(booksToDisplay = null) {
     rankedBookList.innerHTML = ''; // Clear existing list
 
-    let rankedBooks;
-    if (booksToDisplay) {
-        // If an array is passed, use it directly (it's already filtered/sorted)
-        rankedBooks = booksToDisplay;
-    } else {
-        // Fallback: If no array is passed, use allBooks and sort by Elo score descending
-        rankedBooks = Object.values(allBooks).sort((a, b) => {
-            const scoreA = bookScores[a.books_id] || INITIAL_ELO;
-            const scoreB = bookScores[b.books_id] || INITIAL_ELO;
-            return scoreB - scoreA; // Sort by Elo score, highest first
-        });
-    }
+    const booksToDisplay = filteredAndSortedBooks || Object.values(bookScores);
 
-    if (rankedBooks.length === 0) {
-        const listItem = document.createElement('li');
-        listItem.textContent = 'No books ranked yet or matching your criteria.';
-        rankedBookList.appendChild(listItem);
+    if (booksToDisplay.length === 0) {
+        rankedBookList.innerHTML = '<li>No books ranked yet or no books match your filter.</li>';
         return;
     }
-    
-    
 
-    rankedBooks.forEach(book => {
+    booksToDisplay.forEach((book, index) => {
         const listItem = document.createElement('li');
         listItem.classList.add('ranked-book-item');
-        listItem.dataset.bookId = book.books_id; // Add data-book-id for modal
+        listItem.dataset.bookId = book.id; // Store book ID for modal
 
-        // Ensure bookScores has a value for the current book, default to INITIAL_ELO if not present
-        const currentElo = Math.round(bookScores[book.books_id] || INITIAL_ELO);
-
-        // Fetch Google Books Data if not already fetched
-        // This part needs to ensure googleBooksData is present for display.
-        // It's already handled in loadBooks, but if books were added dynamically,
-        // it might need a re-check here or a dedicated function.
-        // For now, assuming googleBooksData is populated by loadBooks().
-        const imageUrl = book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'images/default-cover.png';
-        const description = book.googleBooksData && book.googleBooksData.description ? stripHtmlTags(book.googleBooksData.description) : (book.books_description || 'No description available.');
-        const truncatedDescription = description.length > SUMMARY_MAX_LENGTH ?
-                                     description.substring(0, SUMMARY_MAX_LENGTH) + '...' :
-                                     description;
+        // Ensure book.description exists before truncating or creating elements
+        const summaryText = book.description ? truncateSummary(book.description, 150) : 'No summary available.';
+        const fullSummaryText = book.description || 'No summary available.';
 
         listItem.innerHTML = `
-            <img src="${imageUrl}" alt="Cover for ${book.title}" class="ranked-book-cover">
-            <div class="ranked-book-info">
-                <h3 class="ranked-book-title">${book.title || 'Unknown Title'}</h3>
-                <p class="ranked-book-author">${book.primaryauthor || 'Unknown Author'}</p>
-                <p class="elo-score">Elo Score: ${currentElo}</p>
-                <div class="ranked-summary">
-                    <p class="truncated-text">${truncatedDescription}</p>
-                    <p class="full-text" style="display: none;">${description}</p> ${description.length > SUMMARY_MAX_LENGTH ?
-                      `<a href="#" class="read-more-link" data-action="expand">Read more</a>` : ''}
-                </div>
-                <button class="toggle-summary-button">Show Summary</button>
+            <span class="rank-number">${index + 1}.</span>
+            <span class="ranked-title">${book.title}</span> by <span class="ranked-author">${book.author}</span>
+            <span class="elo-score">Elo: ${Math.round(book.elo)}</span>
+            <div class="ranked-summary" style="display: none;">
+                <p class="truncated-text">${summaryText}</p>
+                <p class="full-text" style="display: none;">${fullSummaryText}</p>
+                ${book.description && book.description.length > 150 ? `<a href="#" class="read-more-link" data-action="expand">Read more</a>` : ''}
             </div>
+            <button class="toggle-summary-button">Show Summary</button>
         `;
         rankedBookList.appendChild(listItem);
     });
 }
 
-/**
- * Filters and sorts the books based on user input, then updates the displayed list.
- */
-function updateRankedListDisplay() {
-    let currentBooks = Object.values(allBooks); // Start with all books
-    const filterText = filterInput.value.toLowerCase();
-    const sortOption = sortSelect.value;
 
-    // 1. Filter books
-    const filteredBooks = currentBooks.filter(book => {
-        const title = (book.title || '').toLowerCase();
-        const author = (book.primaryauthor || '').toLowerCase();
-        const description = (book.books_description || '').toLowerCase();
-        const googleDescription = (book.googleBooksData && book.googleBooksData.description ? stripHtmlTags(book.googleBooksData.description) : '').toLowerCase();
-
-        // Check if filterText is found in title, author, or description (both source and Google Books)
-        return title.includes(filterText) ||
-               author.includes(filterText) ||
-               description.includes(filterText) ||
-               googleDescription.includes(filterText);
-    });
-
-    // 2. Sort books
-    const sortedBooks = filteredBooks.sort((a, b) => {
-        const scoreA = bookScores[a.books_id] || INITIAL_ELO;
-        const scoreB = bookScores[b.books_id] || INITIAL_ELO;
-
-        switch (sortOption) {
-            case 'elo-desc':
-                return scoreB - scoreA;
-            case 'elo-asc':
-                return scoreA - scoreB;
-            case 'title-asc':
-                return (a.title || '').localeCompare(b.title || '');
-            case 'title-desc':
-                return (b.title || '').localeCompare(a.title || '');
-            case 'author-asc':
-                return (a.primaryauthor || '').localeCompare(b.primaryauthor || '');
-            case 'author-desc':
-                return (b.primaryauthor || '').localeCompare(a.primaryauthor || '');
-            default:
-                return scoreB - scoreA; // Default to Elo Desc
-        }
-    });
-
-    // 3. Display the processed list
-    displayRankedList(sortedBooks);
-}
-
-// Function to save the book API details cache to local storage
-function saveBookApiDetailsCache() {
-    try {
-        localStorage.setItem('bookApiDetailsCache', JSON.stringify(bookApiDetailsCache));
-        // console.log("Book API details cache saved."); // Optional: uncomment for debugging
-    } catch (e) {
-        console.error("Error saving book API details cache to local storage:", e);
+function truncateSummary(text, maxLength) {
+    if (text.length <= maxLength) {
+        return text;
     }
+    // Find the last space within the maxLength
+    const truncated = text.slice(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    return lastSpace > 0 ? truncated.slice(0, lastSpace) + '...' : truncated + '...';
 }
 
-// Function to load the book API details cache from local storage
-function loadBookApiDetailsCache() {
-    try {
-        const savedCache = localStorage.getItem('bookApiDetailsCache');
-        if (savedCache) {
-            bookApiDetailsCache = JSON.parse(savedCache);
-            // console.log("Book API details cache loaded."); // Optional: uncomment for debugging
-        }
-    } catch (e) {
-        console.error("Error loading book API details cache from local storage:", e);
-        // Clear corrupt cache if parsing fails
-        localStorage.removeItem('bookApiDetailsCache');
-        bookApiDetailsCache = {};
-    }
-}
-
-// --- Step 8: Save progress ---
-function saveRankingToLocalStorage() {
-    try {
-        localStorage.setItem('bookRankingScores', JSON.stringify(bookScores));
-        localStorage.setItem('bookComparisonHistory', JSON.stringify(comparisonHistory));
-        displayMessage('Your progress has been saved!', 'success'); // User feedback
-    } catch (e) {
-        console.error("Error saving to local storage:", e);
-        // More specific error messages based on common LocalStorage errors
-        if (e.name === 'QuotaExceededError') {
-            displayMessage('Storage limit reached! Could not save all data. Please clear some browser data or contact support.', 'error');
-        } else {
-            displayMessage('Failed to save progress. Local storage might be full or disabled. Error: ' + e.message, 'error');
-        }
-    }
-}
-
-function loadRankingFromLocalStorage() {
-    try {
-        const savedScores = localStorage.getItem('bookRankingScores');
-        const savedHistory = localStorage.getItem('bookComparisonHistory');
-
-        if (savedScores) {
-            bookScores = JSON.parse(savedScores);
-            // console.log("Loaded scores:", bookScores); // Keep for debugging, remove for production
-        }
-        if (savedHistory) {
-            comparisonHistory = JSON.parse(savedHistory);
-            // console.log("Loaded history:", comparisonHistory); // Keep for debugging, remove for production
-        }
-        displayMessage('Your previous rankings have been loaded!', 'info'); // User feedback
-
-    } catch (e) {
-        console.error("Error loading from local storage:", e);
-        // Clear potentially corrupt data if parsing fails
-        localStorage.removeItem('bookRankingScores');
-        localStorage.removeItem('bookComparisonHistory');
-        bookScores = {}; // Reset scores
-        comparisonHistory = []; // Reset history
-        displayMessage('Corrupt data found in local storage. Your ranking has been reset.', 'error');
-    }
-}
-
-// Function to export rankings to a downloadable JSON file
-function exportRankingsToFile() {
-    try {
-        const scores = localStorage.getItem('bookRankingScores');
-        const history = localStorage.getItem('bookComparisonHistory');
-
-        if (!scores && !history) {
-            displayMessage('No ranking data to export!', 'info');
-            return;
-        }
-
-        const exportData = {
-            bookRankingScores: scores ? JSON.parse(scores) : {},
-            bookComparisonHistory: history ? JSON.parse(history) : []
-        };
-
-        // Convert the data to a JSON string
-        const dataStr = JSON.stringify(exportData, null, 2); // null, 2 for pretty printing
-
-        // Create a Blob from the JSON string
-        const blob = new Blob([dataStr], { type: 'application/json' });
-
-        // Create a temporary URL for the Blob
-        const url = URL.createObjectURL(blob);
-
-        // Create a temporary link element
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `book_rankings_backup_${new Date().toISOString().split('T')[0]}.json`; // Filename with date
-
-        // Append link to body, click it, and remove it
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        // Revoke the object URL to free up memory
-        URL.revokeObjectURL(url);
-
-        displayMessage('Your rankings have been exported successfully!', 'success');
-
-    } catch (e) {
-        console.error("Error exporting data:", e);
-        displayMessage('Failed to export rankings. Error: ' + e.message, 'error');
-    }
-}
-
-// Function to handle importing rankings from a file
-function importRankingsFromFile(event) {
-    const file = event.target.files[0]; // Get the selected file
-
-    if (!file) {
-        displayMessage('No file selected for import.', 'info');
+async function showBookDetailModal(bookId) {
+    if (!bookDetailModal || !modalBookTitle || !modalBookAuthor || !modalBookScore || !modalBookDescription || !modalBookCover || !modalBookLink) {
+        console.error("One or more modal elements not found.");
         return;
     }
 
-    const reader = new FileReader();
+    const book = bookScores[bookId];
+    if (!book) {
+        console.error("Book not found for modal:", bookId);
+        displayMessage('Book details not found.', 'error');
+        return;
+    }
 
-    reader.onload = function(e) {
+    modalBookTitle.textContent = book.title;
+    modalBookAuthor.textContent = book.author;
+    modalBookScore.textContent = `Elo Score: ${Math.round(book.elo)}`;
+    modalBookCover.src = book.cover || 'images/default-cover.png';
+    modalBookLink.href = book.googleBooksLink || '#';
+    modalBookLink.style.display = book.googleBooksLink ? 'inline-block' : 'none'; // Hide if no link
+
+    // Display summary or fetch if not available
+    if (book.description) {
+        modalBookDescription.textContent = book.description;
+    } else {
+        modalBookDescription.textContent = 'Loading description...';
         try {
-            const importedData = JSON.parse(e.target.result);
-
-            if (importedData.bookRankingScores && importedData.bookComparisonHistory) {
-                // Confirm with the user before overwriting
-                if (!confirm('Importing will overwrite your current rankings. Are you sure you want to proceed?')) {
-                    displayMessage('Import cancelled.', 'info');
-                    return; // Exit if user cancels
+            if (!bookApiDetailsCache[book.id]) {
+                const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${book.isbn || book.id}`); // Try ISBN first, then ID
+                const data = await response.json();
+                if (data.items && data.items.length > 0) {
+                    const volumeInfo = data.items[0].volumeInfo;
+                    bookApiDetailsCache[book.id] = volumeInfo.description || 'No detailed description available.';
+                } else {
+                    bookApiDetailsCache[book.id] = 'No detailed description available.';
                 }
-
-                // Update in-memory data directly with imported data
-                bookScores = importedData.bookRankingScores;
-                comparisonHistory = importedData.bookComparisonHistory;
-
-                // Also update localStorage
-                localStorage.setItem('bookRankingScores', JSON.stringify(bookScores));
-                localStorage.setItem('bookComparisonHistory', JSON.stringify(comparisonHistory));
-
-                // Corrected: Initialize scores for books present in allBooks but not in importedScores
-                Object.keys(allBooks).forEach(bookId => {
-                    // If a book from allBooks doesn't have a score after import, initialize it
-                    if (bookScores[bookId] === undefined) {
-                        bookScores[bookId] = INITIAL_ELO; // Initialize it with the default Elo
-                    }
-                });
-
-                // Refresh the UI to reflect the imported data
-                displayRankedList(); // Regenerate and display the ranked list
-                displayNextComparison(); // Update the comparison section
-                displayMessage('Rankings imported successfully!', 'success');
-                displayCacheReminder();
-
-            } else {
-                displayMessage('Invalid import file format. Missing ranking data.', 'error');
             }
+            modalBookDescription.textContent = bookApiDetailsCache[book.id];
         } catch (error) {
-            console.error("Error parsing or importing data:", error);
-            displayMessage('Failed to import rankings. Please ensure it\'s a valid JSON backup file. Error: ' + error.message, 'error');
+            console.error('Error fetching book details from Google Books API:', error);
+            modalBookDescription.textContent = 'Failed to load description.';
         }
-    };
+    }
 
-    reader.onerror = function() {
-        displayMessage('Failed to read file. Please try again.', 'error');
-    };
-
-    reader.readAsText(file); // Read the file as text
-}
-// Helper function to display messages to the user
-function displayMessage(message, type = 'info', duration = 3000) {
-    messageArea.textContent = message;
-    messageArea.className = ''; // Clear previous classes
-    messageArea.classList.add(type);
-    messageArea.style.display = 'block';
-
-    // Hide message after a duration
-    setTimeout(() => {
-        messageArea.style.display = 'none';
-    }, duration);
+    bookDetailModal.classList.add('show'); // Use class for showing/hiding
 }
 
 function resetAllRankings() {
     if (confirm('Are you sure you want to reset all rankings? This cannot be undone!')) {
-        localStorage.removeItem('bookRankingScores');
-        localStorage.removeItem('bookComparisonHistory');
-        bookScores = {}; // Reset in-memory scores
-
-        // Corrected: Iterate over the keys (IDs) of allBooks and initialize their scores
-        Object.keys(allBooks).forEach(id => {
-            bookScores[id] = INITIAL_ELO;
-        });
-
-        comparisonHistory = []; // Reset in-memory history
-
-        displayRankedList(); // Update the displayed list to be empty/reset
-        displayNextComparison(); // Show a new comparison
-        displayMessage('All rankings have been reset successfully!', 'info');
+        bookScores = {};
+        comparisonHistory = [];
+        saveRankings();
+        displayMessage('All rankings have been reset!', 'success');
+        loadBooks(); // Reload books and start fresh comparison
     }
 }
 
-// Function to display the cache reminder message  Step 9 improvement but implented by changes in step 8
-function displayCacheReminder() {
-    const dismissed = localStorage.getItem('cacheReminderDismissed');
-        cacheReminderMessage.style.display = 'block';
+function exportRankingsToFile() {
+    const data = {
+        bookScores: bookScores,
+        comparisonHistory: comparisonHistory,
+        // You might want to include allBooks if it contains additional necessary data
+        allBooks: allBooks // Including allBooks to ensure book details are preserved
+    };
+    const filename = `book_rankings_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    displayMessage('Rankings exported successfully!', 'success');
 }
 
-// Temporary function to test Google Books API
-async function testGoogleBooksAPI() {
-    const testISBN = '031209423X'; // Use an ISBN from your librarything_Orlando_Mas.json
-    const apiUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${testISBN}`;
-
-    console.log(`Attempting to fetch data for ISBN: ${testISBN}`);
-    console.log(`API URL: ${apiUrl}`);
-
-    try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Google Books API Response:", data);
-
-        // Check if data.items exists and has content
-        if (data.items && data.items.length > 0) {
-            const bookInfo = data.items[0].volumeInfo;
-            console.log("Found Book Title:", bookInfo.title);
-            console.log("Found Book Authors:", bookInfo.authors);
-            console.log("Found Book Description (Summary):", bookInfo.description);
-            if (bookInfo.imageLinks) {
-                console.log("Found Small Thumbnail Cover:", bookInfo.imageLinks.smallThumbnail);
-                console.log("Found Thumbnail Cover:", bookInfo.imageLinks.thumbnail);
+function importRankingsFromFile(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (importedData.bookScores && importedData.comparisonHistory && importedData.allBooks) {
+                    bookScores = importedData.bookScores;
+                    comparisonHistory = importedData.comparisonHistory;
+                    allBooks = importedData.allBooks; // Important to restore allBooks for consistency
+                    saveRankings(); // Save imported data to local storage
+                    displayMessage('Rankings imported successfully!', 'success');
+                    loadBooks(); // Reload the display based on imported data
+                } else {
+                    displayMessage('Invalid backup file format.', 'error');
+                }
+            } catch (error) {
+                console.error('Error importing file:', error);
+                displayMessage('Error reading backup file. Make sure it is a valid JSON.', 'error');
             }
-        } else {
-            console.log("No results found for this ISBN.");
-        }
-
-    } catch (error) {
-        console.error("Error fetching from Google Books API:", error);
+        };
+        reader.readAsText(file);
     }
 }
 
-// Helper function to strip HTML tags from a string
-function stripHtmlTags(str) {
-    if ((str === null) || (str === '')) {
-        return false;
+// --- NEW: Function to apply filters and sorting ---
+function applyFiltersAndSorting() {
+    // Ensure filterInput and sortSelect are not null before accessing their values
+    if (!filterInput || !sortSelect) {
+        console.error("Filter or sort elements not found during applyFiltersAndSorting. This might happen if script runs before DOM is fully loaded for these elements, or IDs are mismatched.");
+        return;
+    }
+
+    const filterText = filterInput.value.toLowerCase();
+    const sortBy = sortSelect.value;
+
+    let filteredBooks = Object.values(bookScores).filter(book => {
+        const titleMatch = book.title && book.title.toLowerCase().includes(filterText);
+        const authorMatch = book.author && book.author.toLowerCase().includes(filterText);
+        return titleMatch || authorMatch;
+    });
+
+    switch (sortBy) {
+        case 'elo-desc':
+            filteredBooks.sort((a, b) => b.elo - a.elo);
+            break;
+        case 'elo-asc':
+            filteredBooks.sort((a, b) => a.elo - b.elo);
+            break;
+        case 'title-asc':
+            filteredBooks.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+            break;
+        case 'title-desc':
+            filteredBooks.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+            break;
+        case 'author-asc':
+            filteredBooks.sort((a, b) => (a.author || '').localeCompare(b.author || ''));
+            break;
+        case 'author-desc':
+            filteredBooks.sort((a, b) => (b.author || '').localeCompare(a.author || ''));
+            break;
+        default:
+            filteredBooks.sort((a, b) => b.elo - a.elo); // Default sort
+            break;
+    }
+
+    updateRankedListDisplay(filteredBooks);
+}
+
+// --- Event Listeners (updated to include filter and sort) ---
+document.addEventListener('DOMContentLoaded', () => {
+    loadBooks();
+    if (localStorage.getItem('cacheReminderDismissed') === 'true') {
+        cacheReminderMessage.style.display = 'none';
     } else {
-        str = str.toString();
-        // Use a regular expression to remove HTML tags
-        return str.replace(/<[^>]*>/g, '');
+        cacheReminderMessage.style.display = 'block';
     }
-}
-
-// Call the test function once the DOM is loaded to see results in console
-document.addEventListener('DOMContentLoaded', () => {
-    loadBooks();
-    // testGoogleBooksAPI(); // <--- ADD THIS LINE TEMPORARILY FOR TESTING
-});
-
-// Initial load of books and display
-document.addEventListener('DOMContentLoaded', () => {
-    loadBooks();
+    // Initial display of ranked list, will now correctly apply filters and sorts
+    applyFiltersAndSorting(); // Call this initially to populate the list and apply default sort
 });
 
 // Added to Improve Step 8
@@ -742,8 +410,8 @@ importRankingsButton.addEventListener('click', () => {
 importFileInput.addEventListener('change', importRankingsFromFile);
 
 dismissCacheReminderButton.addEventListener('click', () => {
-    localStorage.setItem('cacheReminderDismissed', 'true'); // Set flag in local storage
-    cacheReminderMessage.style.display = 'none'; // Hide the message
+    localStorage.setItem('cacheReminderDismissed', 'true');
+    cacheReminderMessage.style.display = 'none';
     displayMessage('Reminder dismissed. You can clear your browser\'s local storage to show it again.', 'info', 5000);
 });
 
@@ -755,27 +423,27 @@ rankedBookList.addEventListener('click', (event) => {
         if (rankedSummaryDiv) {
             const truncatedTextSpan = rankedSummaryDiv.querySelector('.truncated-text');
             const fullTextSpan = rankedSummaryDiv.querySelector('.full-text');
-            const readMoreLink = rankedSummaryDiv.querySelector('.read-more-link'); // Get the link too
+            const readMoreLink = rankedSummaryDiv.querySelector('.read-more-link');
 
             if (fullTextSpan.style.display === 'none') {
                 // Currently showing truncated, switch to full
-                truncatedTextSpan.style.display = 'none'; // Hide truncated text
-                fullTextSpan.style.display = 'inline'; // Show full text (or 'block' if preferred)
-                if (readMoreLink) readMoreLink.style.display = 'none'; // Hide "Read more" link
-                event.target.textContent = 'Hide Summary'; // Change button text
+                truncatedTextSpan.style.display = 'none';
+                fullTextSpan.style.display = 'inline';
+                if (readMoreLink) readMoreLink.style.display = 'none';
+                event.target.textContent = 'Hide Summary';
             } else {
                 // Currently showing full, switch to truncated
-                truncatedTextSpan.style.display = 'inline'; // Show truncated text (or 'block')
-                fullTextSpan.style.display = 'none'; // Hide full text
-                if (readMoreLink) readMoreLink.style.display = 'inline'; // Show "Read more" link back
-                event.target.textContent = 'Show Summary'; // Change button text
+                truncatedTextSpan.style.display = 'inline';
+                fullTextSpan.style.display = 'none';
+                if (readMoreLink) readMoreLink.style.display = 'inline';
+                event.target.textContent = 'Show Summary';
             }
         }
     }
 
     // Handle "Read more" / "Show less" links within the summary itself
     if (event.target.classList.contains('read-more-link')) {
-        event.preventDefault(); // Prevent default link behavior (jumping to top)
+        event.preventDefault();
         const rankedSummaryDiv = event.target.closest('.ranked-summary');
         if (rankedSummaryDiv) { // Ensure the parent summary div exists
             const truncatedTextSpan = rankedSummaryDiv.querySelector('.truncated-text');
@@ -783,7 +451,7 @@ rankedBookList.addEventListener('click', (event) => {
 
             if (event.target.dataset.action === 'expand') {
                 truncatedTextSpan.style.display = 'none';
-                fullTextSpan.style.display = 'inline'; // Use inline to flow with text
+                fullTextSpan.style.display = 'inline';
                 event.target.textContent = 'Show less';
                 event.target.dataset.action = 'collapse';
             } else { // action === 'collapse'
@@ -813,21 +481,26 @@ rankedBookList.addEventListener('click', (event) => {
     }
 });
 
-closeModalButton.addEventListener('click', () => {
-    if (bookDetailModal) {
-        bookDetailModal.classList.remove('show');
-    }
-});
+// Using conditional checks for modal buttons since `closeModalButton` and `bookDetailModal` might be null if HTML is malformed
+if (closeModalButton) {
+    closeModalButton.addEventListener('click', () => {
+        if (bookDetailModal) {
+            bookDetailModal.classList.remove('show');
+        }
+    });
+}
 
-bookDetailModal.addEventListener('click', (event) => {
-    if (event.target === bookDetailModal) { // Only close if clicking the background, not content
-        bookDetailModal.classList.remove('show');
-    }
-});
+if (bookDetailModal) {
+    bookDetailModal.addEventListener('click', (event) => {
+        if (event.target === bookDetailModal) { // Only close if clicking the background, not content
+            bookDetailModal.classList.remove('show');
+        }
+    });
+}
 
 document.addEventListener('keydown', (event) => {
     // Check if the modal is currently open by checking for the 'show' class
-    if (event.key === 'Escape' && bookDetailModal.classList.contains('show')) {
+    if (event.key === 'Escape' && bookDetailModal && bookDetailModal.classList.contains('show')) {
         bookDetailModal.classList.remove('show');
     }
 });
@@ -857,3 +530,17 @@ book2Element.addEventListener('click', (event) => {
         showBookDetailModal(bookId);
     }
 });
+
+// **Crucial addition for your TypeError:**
+// Event listeners for filter and sort functionality
+if (filterInput) { // Good practice to check if element exists before adding listener
+    filterInput.addEventListener('input', applyFiltersAndSorting);
+} else {
+    console.error("Error: Element with ID 'filter-input' not found. Please ensure it exists in index.html.");
+}
+
+if (sortSelect) { // Good practice to check if element exists before adding listener
+    sortSelect.addEventListener('change', applyFiltersAndSorting);
+} else {
+    console.error("Error: Element with ID 'sort-select' not found. Please ensure it exists in index.html.");
+}
