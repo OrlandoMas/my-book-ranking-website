@@ -138,7 +138,7 @@ async function loadBooks() {
         saveBookApiDetailsCache();
 
         displayNextComparison();
-        displayRankedList();
+        updateRankedListDisplay();
 
     } catch (error) {
         console.error('Error loading books:', error);
@@ -330,7 +330,7 @@ function recordPreference(preferredBookId, otherBookId) {
     localStorage.setItem('bookComparisonHistory', JSON.stringify(comparisonHistory));
 
     displayNextComparison();
-    displayRankedList(); // Refresh the ranked list with new Elo scores
+    updateRankedListDisplay(); // Refresh the ranked list with new Elo scores
 }
 
 book1Button.addEventListener('click', (event) => {
@@ -371,6 +371,8 @@ function displayRankedList(booksToDisplay = null) {
         rankedBookList.appendChild(listItem);
         return;
     }
+    
+    
 
     rankedBooks.forEach(book => {
         const listItem = document.createElement('li');
@@ -398,9 +400,8 @@ function displayRankedList(booksToDisplay = null) {
                 <p class="ranked-book-author">${book.primaryauthor || 'Unknown Author'}</p>
                 <p class="elo-score">Elo Score: ${currentElo}</p>
                 <div class="ranked-summary">
-                    <p class="truncated-text" style="display: ${description.length > SUMMARY_MAX_LENGTH ? 'inline' : 'block'};">${truncatedDescription}</p>
-                    <p class="full-text" style="display: ${description.length > SUMMARY_MAX_LENGTH ? 'none' : 'none'};">${description}</p>
-                    ${description.length > SUMMARY_MAX_LENGTH ?
+                    <p class="truncated-text">${truncatedDescription}</p>
+                    <p class="full-text" style="display: none;">${description}</p> ${description.length > SUMMARY_MAX_LENGTH ?
                       `<a href="#" class="read-more-link" data-action="expand">Read more</a>` : ''}
                 </div>
                 <button class="toggle-summary-button">Show Summary</button>
@@ -409,6 +410,56 @@ function displayRankedList(booksToDisplay = null) {
         rankedBookList.appendChild(listItem);
     });
 }
+
+/**
+ * Filters and sorts the books based on user input, then updates the displayed list.
+ */
+function updateRankedListDisplay() {
+    let currentBooks = Object.values(allBooks); // Start with all books
+    const filterText = filterInput.value.toLowerCase();
+    const sortOption = sortSelect.value;
+
+    // 1. Filter books
+    const filteredBooks = currentBooks.filter(book => {
+        const title = (book.title || '').toLowerCase();
+        const author = (book.primaryauthor || '').toLowerCase();
+        const description = (book.books_description || '').toLowerCase();
+        const googleDescription = (book.googleBooksData && book.googleBooksData.description ? stripHtmlTags(book.googleBooksData.description) : '').toLowerCase();
+
+        // Check if filterText is found in title, author, or description (both source and Google Books)
+        return title.includes(filterText) ||
+               author.includes(filterText) ||
+               description.includes(filterText) ||
+               googleDescription.includes(filterText);
+    });
+
+    // 2. Sort books
+    const sortedBooks = filteredBooks.sort((a, b) => {
+        const scoreA = bookScores[a.books_id] || INITIAL_ELO;
+        const scoreB = bookScores[b.books_id] || INITIAL_ELO;
+
+        switch (sortOption) {
+            case 'elo-desc':
+                return scoreB - scoreA;
+            case 'elo-asc':
+                return scoreA - scoreB;
+            case 'title-asc':
+                return (a.title || '').localeCompare(b.title || '');
+            case 'title-desc':
+                return (b.title || '').localeCompare(a.title || '');
+            case 'author-asc':
+                return (a.primaryauthor || '').localeCompare(b.primaryauthor || '');
+            case 'author-desc':
+                return (b.primaryauthor || '').localeCompare(a.primaryauthor || '');
+            default:
+                return scoreB - scoreA; // Default to Elo Desc
+        }
+    });
+
+    // 3. Display the processed list
+    displayRankedList(sortedBooks);
+}
+
 // Function to save the book API details cache to local storage
 function saveBookApiDetailsCache() {
     try {
@@ -698,16 +749,26 @@ dismissCacheReminderButton.addEventListener('click', () => {
 
 // Event listener for toggling summary visibility AND "Read more/Show less" within summary
 rankedBookList.addEventListener('click', (event) => {
-    // Handle "Show Summary" / "Hide Summary" button
+    // Handle Show/Hide Summary button click
     if (event.target.classList.contains('toggle-summary-button')) {
-        const summaryElement = event.target.closest('.ranked-book-item').querySelector('.ranked-summary');
-        if (summaryElement) { // Check if summaryElement exists
-            if (summaryElement.style.display === 'none') {
-                summaryElement.style.display = 'block';
-                event.target.textContent = 'Hide Summary';
+        const rankedSummaryDiv = event.target.closest('.ranked-summary');
+        if (rankedSummaryDiv) {
+            const truncatedTextSpan = rankedSummaryDiv.querySelector('.truncated-text');
+            const fullTextSpan = rankedSummaryDiv.querySelector('.full-text');
+            const readMoreLink = rankedSummaryDiv.querySelector('.read-more-link'); // Get the link too
+
+            if (fullTextSpan.style.display === 'none') {
+                // Currently showing truncated, switch to full
+                truncatedTextSpan.style.display = 'none'; // Hide truncated text
+                fullTextSpan.style.display = 'inline'; // Show full text (or 'block' if preferred)
+                if (readMoreLink) readMoreLink.style.display = 'none'; // Hide "Read more" link
+                event.target.textContent = 'Hide Summary'; // Change button text
             } else {
-                summaryElement.style.display = 'none';
-                event.target.textContent = 'Show Summary';
+                // Currently showing full, switch to truncated
+                truncatedTextSpan.style.display = 'inline'; // Show truncated text (or 'block')
+                fullTextSpan.style.display = 'none'; // Hide full text
+                if (readMoreLink) readMoreLink.style.display = 'inline'; // Show "Read more" link back
+                event.target.textContent = 'Show Summary'; // Change button text
             }
         }
     }
