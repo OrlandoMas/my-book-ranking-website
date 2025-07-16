@@ -561,3 +561,5 @@ if (sortSelect) { // Good practice to check if element exists before adding list
 } else {
     console.error("Error: Element with ID 'sort-select' not found. Please ensure it exists in index.html.");
 }
+
+});
