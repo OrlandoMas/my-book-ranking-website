@@ -415,3 +415,52 @@ footer {
         margin-bottom: 0; /* Remove bottom margin when side-by-side */
     }
 }
+
+/* --- NEW: Filter and Sort Controls Styles --- */
+.list-controls {
+    display: flex; /* Use flexbox to arrange items in a row */
+    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+    gap: 15px; /* Space between elements */
+    align-items: center; /* Vertically align items in the middle */
+    margin-bottom: 20px; /* Space below the controls */
+    justify-content: center; /* Center controls horizontally */
+}
+
+#filter-input,
+#sort-select {
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1em;
+    flex: 1; /* Allow inputs to grow */
+    min-width: 180px; /* Minimum width for readability */
+    max-width: 300px; /* Max width to prevent excessive stretching */
+}
+
+#filter-input::placeholder {
+    color: #999;
+}
+
+#sort-select {
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.list-controls label {
+    font-weight: bold;
+    color: #555;
+    white-space: nowrap; /* Prevent "Sort by:" from wrapping */
+}
+
+/* Responsive adjustments for very small screens */
+@media (max-width: 480px) {
+    .list-controls {
+        flex-direction: column; /* Stack controls vertically */
+        align-items: stretch; /* Stretch items to fill width */
+    }
+    #filter-input,
+    #sort-select {
+        width: 100%; /* Full width when stacked */
+        max-width: 100%;
+    }
+}

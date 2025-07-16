@@ -64,18 +64,25 @@
         </section>
 
         <section id="ranked-list-section">
+            <div class="list-controls">
+                <input type="text" id="filter-input" placeholder="Filter by title or author...">
+                <label for="sort-select">Sort by:</label>
+                <select id="sort-select">
+                    <option value="elo-desc">Elo Score (Highest First)</option>
+                    <option value="elo-asc">Elo Score (Lowest First)</option>
+                    <option value="title-asc">Title (A-Z)</option>
+                    <option value="title-desc">Title (Z-A)</option>
+                    <option value="author-asc">Author (A-Z)</option>
+                    <option value="author-desc">Author (Z-A)</option>
+                </select>
+            </div>
             <h2>Your Ranked Books</h2>
                 <ul id="ranked-book-list">
                     <li>No books ranked yet.</li>
                 </ul>
             <div class="data-management-buttons">
-                <button id="reset-rankings-button" class="prefer-button" style="background-color: #dc3545; margin-right: 10px;">Reset All Rankings</button>
-                <button id="export-rankings-button" class="prefer-button" style="background-color: #28a745;">Export Rankings Backup</button>
-                <input type="file" id="import-file-input" accept=".json" style="display: none;">
-                <button id="import-rankings-button" class="prefer-button" style="background-color: #007bff; margin-left: 10px;">Import Rankings</button>
-            </div>
+                </div>
         </section>
-
     </main>
     
         <div id="book-detail-modal" class="modal">
