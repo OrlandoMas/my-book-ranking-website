@@ -88,7 +88,7 @@ function loadRankings() {
 
 async function fetchBooks() {
     try {
-        const response = await fetch('books.json'); // Make sure books.json is in the same directory
+        const response = await fetch('librarything_Orlando_Mas.json'); // Make sure books.json is in the same directory
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -105,7 +105,7 @@ async function fetchBooks() {
         displayMessage(`${allBooks.length} books loaded!`, 'success');
     } catch (error) {
         console.error('Error loading books:', error);
-        displayMessage(`Error loading books: ${error.message}. Please check 'books.json'.`, 'error');
+        displayMessage(`Error loading books: ${error.message}. Please check 'librarything_Orlando_Mas.json'.`, 'error');
     }
 }
 
