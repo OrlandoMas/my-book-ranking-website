@@ -24,6 +24,10 @@ const cacheReminderMessage = document.getElementById('cache-reminder-message');
 const dismissCacheReminderButton = document.getElementById('dismiss-cache-reminder');
 const loadingIndicator = document.getElementById('loading-indicator');
 
+// NEW: References for filter and sort controls
+const filterInput = document.getElementById('filter-input');
+const sortSelect = document.getElementById('sort-select');
+
 const INITIAL_ELO = 1500; // Starting Elo rating for all books
 const SUMMARY_MAX_LENGTH = 300; // Adjust this number to your preference
 const K_FACTOR = 32;       // How much ratings change per game
@@ -340,63 +344,71 @@ book2Button.addEventListener('click', (event) => {
 });
 
 
-// --- Step 7: Display the ranked list ---
-function displayRankedList() {
-    // Sort books by Elo score in descending order
-    const sortedBooks = Object.keys(bookScores)
-        .filter(id => allBooks.hasOwnProperty(id)) // Ensure book still exists in allBooks
-        .map(id => ({
-            ...allBooks[id],
-            score: bookScores[id]
-        }))
-        .sort((a, b) => b.score - a.score);
+/**
+ * Displays the ranked list of books.
+ * @param {Array<Object>} [booksToDisplay=null] - Optional array of books to display.
+ * If null or undefined, it will use and sort `allBooks`.
+ */
+function displayRankedList(booksToDisplay = null) {
+    rankedBookList.innerHTML = ''; // Clear existing list
 
-    rankedBookList.innerHTML = ''; // Clear previous list
+    let rankedBooks;
+    if (booksToDisplay) {
+        // If an array is passed, use it directly (it's already filtered/sorted)
+        rankedBooks = booksToDisplay;
+    } else {
+        // Fallback: If no array is passed, use allBooks and sort by Elo score descending
+        rankedBooks = Object.values(allBooks).sort((a, b) => {
+            const scoreA = bookScores[a.books_id] || INITIAL_ELO;
+            const scoreB = bookScores[b.books_id] || INITIAL_ELO;
+            return scoreB - scoreA; // Sort by Elo score, highest first
+        });
+    }
 
-    if (sortedBooks.length === 0) {
-        rankedBookList.innerHTML = '<li>No books ranked yet.</li>';
+    if (rankedBooks.length === 0) {
+        const listItem = document.createElement('li');
+        listItem.textContent = 'No books ranked yet or matching your criteria.';
+        rankedBookList.appendChild(listItem);
         return;
     }
 
-    sortedBooks.forEach((book, index) => {
+    rankedBooks.forEach(book => {
         const listItem = document.createElement('li');
         listItem.classList.add('ranked-book-item');
-        listItem.dataset.bookId = book.books_id;
+        listItem.dataset.bookId = book.books_id; // Add data-book-id for modal
 
-        // Prepare the summary content: Use Google Books description if available, otherwise fallback to original summary.
-        // Strip HTML and truncate if needed.
-        const rawSummaryToUse = book.googleBooksData && book.googleBooksData.description ? book.googleBooksData.description : book.summary || '';
-        const cleanedSummary = stripHtmlTags(rawSummaryToUse);
-        let summaryContentHtml = '';
+        // Ensure bookScores has a value for the current book, default to INITIAL_ELO if not present
+        const currentElo = Math.round(bookScores[book.books_id] || INITIAL_ELO);
 
-        if (cleanedSummary.length > SUMMARY_MAX_LENGTH) {
-            const truncatedText = cleanedSummary.substring(0, SUMMARY_MAX_LENGTH).trim();
-            summaryContentHtml = `
-                <span class="truncated-text">${truncatedText}...</span>
-                <span class="full-text" style="display: none;">${cleanedSummary}</span>
-                <a href="#" class="read-more-link" data-action="expand">Read more</a>
-            `;
-        } else {
-            summaryContentHtml = cleanedSummary;
-        }
+        // Fetch Google Books Data if not already fetched
+        // This part needs to ensure googleBooksData is present for display.
+        // It's already handled in loadBooks, but if books were added dynamically,
+        // it might need a re-check here or a dedicated function.
+        // For now, assuming googleBooksData is populated by loadBooks().
+        const imageUrl = book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'images/default-cover.png';
+        const description = book.googleBooksData && book.googleBooksData.description ? stripHtmlTags(book.googleBooksData.description) : (book.books_description || 'No description available.');
+        const truncatedDescription = description.length > SUMMARY_MAX_LENGTH ?
+                                     description.substring(0, SUMMARY_MAX_LENGTH) + '...' :
+                                     description;
 
         listItem.innerHTML = `
-          <div class="rank">${index + 1}.</div>
-            <div class="book-details">
-              <img class="ranked-book-cover" src="${book.googleBooksData && book.googleBooksData.thumbnailUrl ? book.googleBooksData.thumbnailUrl : 'images/default-cover.png'}" alt="Cover for ${book.title || 'Unknown Book'}">
-              <div class="title-author-elo">
-                <span class="title">${book.title}</span> by <span class="author">${book.primaryauthor}</span>
-              </div>
-              <div class="summary-toggle">
+            <img src="${imageUrl}" alt="Cover for ${book.title}" class="ranked-book-cover">
+            <div class="ranked-book-info">
+                <h3 class="ranked-book-title">${book.title || 'Unknown Title'}</h3>
+                <p class="ranked-book-author">${book.primaryauthor || 'Unknown Author'}</p>
+                <p class="elo-score">Elo Score: ${currentElo}</p>
+                <div class="ranked-summary">
+                    <p class="truncated-text" style="display: ${description.length > SUMMARY_MAX_LENGTH ? 'inline' : 'block'};">${truncatedDescription}</p>
+                    <p class="full-text" style="display: ${description.length > SUMMARY_MAX_LENGTH ? 'none' : 'none'};">${description}</p>
+                    ${description.length > SUMMARY_MAX_LENGTH ?
+                      `<a href="#" class="read-more-link" data-action="expand">Read more</a>` : ''}
+                </div>
                 <button class="toggle-summary-button">Show Summary</button>
-              </div>
-              <div class="ranked-summary" style="display: none;">${summaryContentHtml}</div>
             </div>
         `;
         rankedBookList.appendChild(listItem);
     });
 }
-
 // Function to save the book API details cache to local storage
 function saveBookApiDetailsCache() {
     try {
