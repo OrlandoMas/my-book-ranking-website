@@ -41,6 +41,18 @@ const modalBookLink = document.getElementById('modal-book-link');
 const filterInput = document.getElementById('filter-input');
 const sortSelect = document.getElementById('sort-select');
 
+    if (filterInput) {
+        filterInput.addEventListener('input', applyFiltersAndSorting);
+    } else {
+        console.error("Error: Element with ID 'filter-input' not found. Please ensure it exists in index.html.");
+    }
+
+    if (sortSelect) {
+        sortSelect.addEventListener('change', applyFiltersAndSorting);
+    } else {
+        console.error("Error: Element with ID 'sort-select' not found. Please ensure it exists in index.html.");
+    }
+
     if (resetRankingsButton) {
         resetRankingsButton.addEventListener('click', () => {
             // Your reset logic here
