@@ -41,6 +41,15 @@ const modalBookLink = document.getElementById('modal-book-link');
 const filterInput = document.getElementById('filter-input');
 const sortSelect = document.getElementById('sort-select');
 
+    if (resetRankingsButton) {
+        resetRankingsButton.addEventListener('click', () => {
+            // Your reset logic here
+            console.log('Reset Rankings button clicked!');
+        });
+    } else {
+        console.error('Reset Rankings Button not found!');
+    }
+
 // Only add the event listener if closeModalButton is not null
     if (closeModalButton) {
         closeModalButton.addEventListener('click', () => {
