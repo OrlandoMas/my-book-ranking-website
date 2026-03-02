@@ -11,53 +11,37 @@
         <h1>My Personal Book Ranking</h1>
     </header>
 
-    <div id="message-area" role="alert" aria-live="polite">
-    </div>
+    <div id="message-area" role="alert" aria-live="polite"></div>
 
     <div id="cache-reminder-message" class="info-message" style="display: none;">
         <h3>Important Development Reminder!</h3>
-        <p>If changes to the website aren't appearing, it's likely a browser cache issue. Please perform a hard refresh:</p>
-        <ul>
-            <li>**Chromebook:** `Ctrl + Shift + R`</li>
-            <li>**Pixel Phone (Chrome):** Go to Chrome App Info > Storage & cache > Clear cache.</li>
-            <li>Alternatively, open Developer Tools (`Ctrl + Shift + I`), go to 'Network' tab, check 'Disable cache', then refresh.</li>
-        </ul>
-        <button id="dismiss-cache-reminder" class="dismiss-button">Got it! Don't show this again.</button>
+        <p>If changes aren't appearing, please perform a hard refresh (Ctrl + Shift + R).</p>
+        <button id="dismiss-cache-reminder" class="dismiss-button">Got it!</button>
     </div>
 
-    <div id="message-area" role="alert" aria-live="polite">
-    </div>
-
-    <div id="cache-reminder-message" class="info-message" style="display: none;">
-    </div>
-
-    <div id="loading-indicator" style="display: none; text-align: center; margin-top: 20px; font-size: 1.2em; color: #555;">
-        <p>Loading books and fetching details...</p>
+    <div id="loading-indicator" style="display: none; text-align: center; margin-top: 20px;">
+        <p>Loading books...</p>
     </div>
 
     <main>
         <section id="ranking-interface">
             <div class="book-comparison">
                 <div id="book-1" class="book-panel">
-                    <div class="book-details">
-                        <img class="book-cover" src="" alt="Book Cover">
-                        <div class="book-info">
-                            <h2 class="book-title"></h2>
-                            <p class="book-author"></p>
-                        </div>
+                    <img class="book-cover" src="" alt="Book Cover">
+                    <div class="book-info">
+                        <h2 class="book-title"></h2>
+                        <p class="book-author"></p>
                     </div>
-                    <button class="prefer-button" data-book-id="">Prefer This Book</button>
+                    <button class="prefer-button">Prefer This Book</button>
                 </div>
 
                 <div id="book-2" class="book-panel">
-                    <div class="book-details">
-                        <img class="book-cover" src="" alt="Book Cover">
-                        <div class="book-info">
-                            <h2 class="book-title"></h2>
-                            <p class="book-author"></p>
-                        </div>
+                    <img class="book-cover" src="" alt="Book Cover">
+                    <div class="book-info">
+                        <h2 class="book-title"></h2>
+                        <p class="book-author"></p>
                     </div>
-                    <button class="prefer-button" data-book-id="">Prefer This Book</button>
+                    <button class="prefer-button">Prefer This Book</button>
                 </div>
             </div>
             <p id="no-more-books" style="display: none;">No more books to compare!</p>
@@ -66,45 +50,37 @@
         <section id="ranked-list-section">
             <div class="list-controls">
                 <input type="text" id="filter-input" placeholder="Filter by title or author...">
-                <label for="sort-select">Sort by:</label>
                 <select id="sort-select">
-                    <option value="elo-desc">Elo Score (Highest First)</option>
-                    <option value="elo-asc">Elo Score (Lowest First)</option>
+                    <option value="elo-desc">Elo Score (Highest)</option>
+                    <option value="elo-asc">Elo Score (Lowest)</option>
                     <option value="title-asc">Title (A-Z)</option>
-                    <option value="title-desc">Title (Z-A)</option>
-                    <option value="author-asc">Author (A-Z)</option>
-                    <option value="author-desc">Author (Z-A)</option>
                 </select>
             </div>
             <h2>Your Ranked Books</h2>
-                <ul id="ranked-book-list">
-                    <li>No books ranked yet.</li>
-                </ul>
+            <ul id="ranked-book-list"></ul>
+            
             <div class="data-management-buttons">
-    <button id="reset-rankings-button" class="prefer-button" style="background-color: #dc3545; margin-right: 10px;">Reset All Rankings</button>
-    </div>
+                <button id="reset-rankings-button">Reset All</button>
+                <button id="export-rankings-button">Export Backup</button>
+                <button id="import-rankings-button">Import Backup</button>
+                <input type="file" id="import-file-input" style="display: none;">
+            </div>
         </section>
     </main>
-    
-        <div id="book-detail-modal" class="modal">
+
+    <div id="book-detail-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <div class="modal-body">
-                <img id="modal-book-cover" src="images/default-cover.png" alt="Book Cover" class="modal-book-cover">
+                <img id="modal-book-cover" src="" alt="Cover">
                 <div class="modal-info">
                     <h2 id="modal-book-title"></h2>
                     <p id="modal-book-author"></p>
-                    <p id="modal-book-score" class="elo-score"></p>
                     <p id="modal-book-description"></p>
-                    <a id="modal-book-link" href="#" target="_blank" rel="noopener noreferrer">View on Google Books</a>
                 </div>
             </div>
         </div>
     </div>
-
-    <footer>
-        <p>&copy; 2025 Personal Book Ranking</p>
-    </footer>
 
     <script src="script.js"></script>
 </body>
