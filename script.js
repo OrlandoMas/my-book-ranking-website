@@ -1,13 +1,22 @@
+/**
+ * MY BOOK RANKING WEBSITE - CORE LOGIC
+ * Features: Elo Ranking, LibraryThing JSON Integration, Open Library Cover Fetching
+ */
+
 let allBooks = [];
 let bookScores = {};
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM Elements ---
     const book1Element = document.getElementById('book-1');
     const book2Element = document.getElementById('book-2');
     const rankedBookList = document.getElementById('ranked-book-list');
     const loadingIndicator = document.getElementById('loading-indicator');
+    const resetBtn = document.getElementById('reset-rankings-button');
+    const filterInput = document.getElementById('filter-input');
+    const sortSelect = document.getElementById('sort-select');
 
-    // 1. Start the loading process
+    // --- 1. Load Data ---
     loadBooks();
 
     async function loadBooks() {
@@ -15,44 +24,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await fetch('librarything_Orlando_Mas.json');
-            if (!response.ok) throw new Error(`Could not find JSON file (Status: ${response.status})`);
+            if (!response.ok) throw new Error(`Could not load JSON. Status: ${response.status}`);
             
             const rawData = await response.json();
             
-            // FIX: Convert LibraryThing's dictionary structure into a flat array
-            allBooks = Object.values(rawData).map(book => ({
-                id: book.books_id || book.title,
-                title: book.title || "Unknown Title",
-                author: book.primaryauthor || "Unknown Author",
-                // LibraryThing JSON often uses 'cover' or an empty string if none exists
-                cover: book.cover || 'https://via.placeholder.com/150x200?text=No+Cover'
-            }));
+            // LibraryThing JSON is an object/dictionary. We convert it to an array.
+            allBooks = Object.values(rawData).map(book => {
+                // Extract the first ISBN available in the isbn object
+                let firstIsbn = "";
+                if (book.isbn && typeof book.isbn === 'object') {
+                    const isbnValues = Object.values(book.isbn);
+                    if (isbnValues.length > 0) firstIsbn = isbnValues[0];
+                }
 
-            // 2. Initialize Elo scores
+                return {
+                    id: book.books_id || book.title,
+                    title: book.title || "Unknown Title",
+                    author: book.primaryauthor || "Unknown Author",
+                    isbn: firstIsbn
+                };
+            });
+
+            console.log(`Successfully loaded ${allBooks.length} books.`);
+
+            // --- 2. Initialize or Load Elo Scores ---
             const savedScores = JSON.parse(localStorage.getItem('bookScores')) || {};
             
             allBooks.forEach(book => {
                 if (!savedScores[book.id]) {
+                    // New book found: set starting Elo to 1500
                     savedScores[book.id] = { ...book, elo: 1500 };
+                } else {
+                    // Update existing book info (title/author) while keeping the score
+                    savedScores[book.id] = { ...savedScores[book.id], ...book };
                 }
             });
 
             bookScores = savedScores;
-            localStorage.setItem('bookScores', JSON.stringify(bookScores));
+            saveToLocalStorage();
 
             if (loadingIndicator) loadingIndicator.style.display = 'none';
+            
+            // --- 3. Kick off the UI ---
             displayBooksForComparison();
             updateRankedList();
 
         } catch (err) {
             console.error("Initialization Error:", err);
-            if (loadingIndicator) loadingIndicator.innerHTML = `<p style="color:red">Error: ${err.message}</p>`;
+            if (loadingIndicator) {
+                loadingIndicator.innerHTML = `<p style="color:red">Error: ${err.message}. Make sure your JSON file is in the same folder.</p>`;
+            }
         }
     }
 
+    // --- 4. Comparison Logic ---
     function displayBooksForComparison() {
         if (allBooks.length < 2) return;
 
+        // Pick two unique random books
         const b1 = allBooks[Math.floor(Math.random() * allBooks.length)];
         let b2;
         do {
@@ -67,44 +96,39 @@ document.addEventListener('DOMContentLoaded', () => {
         element.dataset.bookId = book.id;
         element.querySelector('.book-title').textContent = book.title;
         element.querySelector('.book-author').textContent = book.author;
-        element.querySelector('.book-cover').src = book.cover;
-    }
-
-    function updateRankedList() {
-        const sorted = Object.values(bookScores).sort((a, b) => b.elo - a.elo);
         
-        rankedBookList.innerHTML = sorted.map((book, index) => `
-            <li class="ranked-book-item">
-                <span>${index + 1}. <strong>${book.title}</strong> - ${book.author} (${Math.round(book.elo)})</span>
-            </li>
-        `).join('');
+        const coverImg = element.querySelector('.book-cover');
+        
+        // Use Open Library API for covers using ISBN
+        if (book.isbn) {
+            coverImg.src = `https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`;
+        } else {
+            coverImg.src = 'https://via.placeholder.com/150x225?text=No+ISBN';
+        }
+
+        // Fallback if the specific ISBN doesn't have an image on Open Library
+        coverImg.onerror = function() {
+            this.src = 'https://via.placeholder.com/150x225?text=No+Cover+Found';
+        };
     }
 
-    // Set up click handlers once
-    document.querySelectorAll('.prefer-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const winnerId = e.target.closest('.book-panel').dataset.bookId;
-            const loserId = (winnerId === book1Element.dataset.bookId)
-                            ? book2Element.dataset.bookId
-                            : book1Element.dataset.bookId;
-            
-            handlePreference(winnerId, loserId);
-        });
-    });
-
+    // --- 5. Ranking Logic (Elo) ---
     function handlePreference(winnerId, loserId) {
         const K = 32;
         const ratingA = bookScores[winnerId].elo;
         const ratingB = bookScores[loserId].elo;
 
+        // Calculate expected win probability
         const expectedA = 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
         const expectedB = 1 / (1 + Math.pow(10, (ratingA - ratingB) / 400));
 
+        // Update scores
         bookScores[winnerId].elo += K * (1 - expectedA);
         bookScores[loserId].elo += K * (0 - expectedB);
 
-        localStorage.setItem('bookScores', JSON.stringify(bookScores));
+        saveToLocalStorage();
         displayBooksForComparison();
         updateRankedList();
     }
-});
+
+    //
