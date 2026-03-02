@@ -1,466 +1,91 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #f0f2f5;
     margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
-    color: #333;
-    line-height: 1.6;
-}
-
-header {
-    background-color: #333;
-    color: #fff;
-    padding: 1rem 0;
+    padding: 20px;
     text-align: center;
 }
+
+header { margin-bottom: 20px; }
 
 main {
     max-width: 900px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #fff;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-#ranking-interface {
-    margin-bottom: 40px;
-    text-align: center;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 .book-comparison-container {
     display: flex;
-    justify-content: space-around;
-    gap: 20px;
-    margin-top: 20px;
-    flex-wrap: wrap; /* Allows cards to wrap on smaller screens */
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 40px;
+    flex-wrap: wrap; /* Helps on mobile */
 }
 
 .book-card {
-    border: 1px solid #ddd;
-    padding: 15px;
-    border-radius: 8px;
-    text-align: center;
-    width: 45%; /* Adjust for two columns */
-    box-sizing: border-box; /* Include padding in width */
+    width: 250px;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    background: #fff;
+    transition: transform 0.2s;
+}
+
+.book-card:hover { transform: translateY(-5px); }
+
+.book-cover {
+    width: 150px;
+    height: 225px;
+    object-fit: cover;
+    background-color: #e9ecef;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.book-title {
+    font-size: 1.1rem;
+    margin: 10px 0;
+    min-height: 2.8em;
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
     align-items: center;
-    min-height: 200px; /* Minimum height for consistency */
+    justify-content: center;
 }
 
-.book-card h3 {
-    font-size: 1.2em;
-    margin-bottom: 10px;
-}
-
-.book-card p {
-    font-style: italic;
-    color: #555;
-    flex-grow: 1; /* Allows author to take up available space */
+.book-author {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
 }
 
 .prefer-button {
     background-color: #007bff;
-    color: #fff;
+    color: white;
     border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
+    padding: 12px 24px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 1em;
-    margin-top: 15px;
+    font-weight: bold;
+    width: 100%;
 }
 
-.prefer-button:hover {
-    background-color: #0056b3;
-}
-
-#ranked-list-section h2 {
-    text-align: center;
-    margin-top: 40px;
-}
+.prefer-button:hover { background-color: #0056b3; }
 
 #ranked-book-list {
-    list-style: none;
-    padding: 0;
-}
-
-/* Existing: #ranked-book-list li { ... } */
-#ranked-book-list li.ranked-book-item {
-    background-color: #f9f9f9;
-    border: 1px solid #eee;
-    margin-bottom: 15px; /* More space between items */
-    padding: 15px;
-    border-radius: 8px;
-    display: flex; /* Use flexbox for layout */
-    flex-direction: column; /* Stack info vertically */
-    position: relative; /* For button positioning */
-}
-
-.rank-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 10px;
-    border-bottom: 1px dashed #eee; /* Separator */
-    padding-bottom: 5px;
-}
-
-.rank-number {
-    font-weight: bold;
-    font-size: 1.5em; /* Larger rank number */
-    color: #0056b3; /* Darker blue */
-    margin-right: 15px;
-}
-
-.book-score {
-    font-size: 0.9em;
-    color: #666;
-}
-
-.book-details {
-    flex-grow: 1;
-    margin-bottom: 10px;
-}
-
-.ranked-title {
-    font-size: 1.3em;
-    margin-top: 0;
-    margin-bottom: 5px;
-    color: #333;
-}
-
-.ranked-author {
-    font-style: italic;
-    color: #555;
-    font-size: 0.9em;
-    margin-top: 0;
-    margin-bottom: 10px;
-}
-
-.ranked-summary {
-    font-size: 0.85em;
-    color: #444;
-    background-color: #eef;
-    padding: 10px;
-    border-left: 3px solid #007bff;
-    margin-top: 10px;
-    max-height: 150px; /* Limit height to prevent huge summaries */
-    overflow-y: auto; /* Add scrollbar if summary is too long */
-}
-
-.toggle-summary-button {
-    background-color: #6c757d; /* Grey button */
-    color: #fff;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.85em;
-    align-self: flex-start; /* Align to the left within flex container */
-}
-
-.toggle-summary-button:hover {
-    background-color: #5a6268;
-}
-
-footer {
-    text-align: center;
-    padding: 20px;
-    margin-top: 40px;
-    background-color: #333;
-    color: #fff;
-}
-
-.data-management-buttons {
-    margin-top: 30px;
-    text-align: center;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .book-card {
-        width: 100%; /* Stack cards on smaller screens */
-    }
-}
-
-#message-area {
-    margin: 10px auto;
-    padding: 10px 20px;
-    border-radius: 5px;
-    text-align: center;
-    max-width: 800px;
-    font-weight: bold;
-    display: none; /* Hidden by default */
-}
-
-#message-area.success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
-#message-area.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-#message-area.info {
-    background-color: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-}
-
-/* Style for the cache reminder message */
-#cache-reminder-message {
-    background-color: #fff3cd; /* Light yellow background */
-    border: 1px solid #ffeeba;
-    color: #856404; /* Dark yellow text */
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     text-align: left;
-    line-height: 1.6;
-    font-size: 0.9em;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 0;
+    list-style: none;
 }
 
-#cache-reminder-message h3 {
-    color: #856404;
-    margin-top: 0;
-    font-size: 1.2em;
+#ranked-book-list li {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 1rem;
 }
 
-#cache-reminder-message ul {
-    list-style-type: disc;
-    margin-left: 20px;
-    margin-bottom: 15px;
-}
-
-#cache-reminder-message ul li {
-    margin-bottom: 5px;
-}
-
-.dismiss-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.8em;
-    margin-top: 10px;
-    display: block; /* Make it a block element to center or float if desired */
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.dismiss-button:hover {
-    background-color: #0056b3;
-}
-
-/* Styles for covers in comparison view */
-.book-details .book-cover {
-    width: 120px; /* Adjust as needed */
-    height: auto;
-    margin-right: 15px; /* Spacing between cover and text */
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-    flex-shrink: 0; /* Prevent it from shrinking */
-}
-
-/* Styles for covers in ranked list */
-.ranked-book-item .ranked-book-cover {
-    width: 80px; /* Adjust as needed */
-    height: auto;
-    margin-right: 10px;
-    box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
-    flex-shrink: 0;
-}
-
-/* Adjustments for general book-details layout to accommodate image */
-.ranking-interface .book-details {
-    display: flex; /* Make title/author/cover align horizontally */
-    align-items: flex-start; /* Align to top */
-}
-
-.ranked-book-item .book-details {
-    display: flex;
-    align-items: flex-start;
-    flex-grow: 1; /* Allow details to take up space */
-}
-
-/* --- Book Detail Modal Styles --- */
-
-.modal {
-    display: none; /* Hidden by default - This MUST be the final 'display' value for the default state */
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.7);
-    /* The flexbox centering properties will now be moved to .modal.show */
-}
-
-/* NEW: This class makes the modal visible and centers its content */
-.modal.show {
-    display: flex; /* This makes the modal visible */
-    justify-content: center; /* Centers content horizontally */
-    align-items: center;   /* Centers content vertically */
-}
-
-.modal-content {
-    background-color: #fefefe;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%; /* Could be responsive */
-    max-width: 700px; /* Max width for larger screens */
-    border-radius: 8px;
-    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-    position: relative; /* Needed for absolute positioning of close button */
-    box-sizing: border-box; /* Include padding in width/height */
-}
-
-.close-button {
-    color: #aaa;
-    position: absolute; /* Position relative to .modal-content */
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.close-button:hover,
-.close-button:focus {
-    color: #000;
-    text-decoration: none;
-}
-
-.modal-body {
-    display: flex;
-    flex-direction: column; /* Stack cover and info vertically on small screens */
-    gap: 20px;
-    align-items: flex-start; /* Align items to the start on flex-direction column */
-}
-
-.modal-book-cover {
-    width: 150px;
-    height: auto; /* Maintain aspect ratio */
-    flex-shrink: 0; /* Prevent shrinking on smaller screens */
-    border-radius: 4px;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-    margin-bottom: 10px; /* Space below cover when stacked */
-}
-
-.modal-info {
-    flex-grow: 1; /* Allows info to take up available space */
-}
-
-#modal-book-title {
-    font-size: 1.8em;
-    margin-top: 0;
-    margin-bottom: 5px;
-    color: #333;
-}
-
-#modal-book-author {
-    font-size: 1.1em;
-    font-style: italic;
-    margin-bottom: 10px;
-    color: #666;
-}
-
-#modal-book-score {
-    font-weight: bold;
-    color: #007bff;
-    font-size: 1.1em;
-    margin-bottom: 15px;
-}
-
-#modal-book-description {
-    font-size: 0.95em;
-    line-height: 1.6;
-    color: #444;
-    max-height: 200px; /* Limit height to prevent overly long descriptions */
-    overflow-y: auto; /* Add scrollbar if description is too long */
-    margin-bottom: 15px;
-    padding-right: 5px; /* Prevent scrollbar from overlapping text */
-}
-
-#modal-book-link {
-    display: inline-block;
-    background-color: #007bff;
-    color: white;
-    padding: 8px 15px;
-    border-radius: 5px;
-    text-decoration: none;
-    font-size: 0.9em;
-}
-
-#modal-book-link:hover {
-    background-color: #0056b3;
-}
-
-/* Media query for larger screens: Arrange cover and info side-by-side */
-@media (min-width: 768px) {
-    .modal-body {
-        flex-direction: row; /* Arrange horizontally on larger screens */
-        align-items: flex-start; /* Align items to the top */
-    }
-    .modal-book-cover {
-        margin-bottom: 0; /* Remove bottom margin when side-by-side */
-    }
-}
-
-/* --- NEW: Filter and Sort Controls Styles --- */
-.list-controls {
-    display: flex; /* Use flexbox to arrange items in a row */
-    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
-    gap: 15px; /* Space between elements */
-    align-items: center; /* Vertically align items in the middle */
-    margin-bottom: 20px; /* Space below the controls */
-    justify-content: center; /* Center controls horizontally */
-}
-
-#filter-input,
-#sort-select {
-    padding: 10px 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1em;
-    flex: 1; /* Allow inputs to grow */
-    min-width: 180px; /* Minimum width for readability */
-    max-width: 300px; /* Max width to prevent excessive stretching */
-}
-
-#filter-input::placeholder {
-    color: #999;
-}
-
-#sort-select {
-    background-color: #fff;
-    cursor: pointer;
-}
-
-.list-controls label {
-    font-weight: bold;
-    color: #555;
-    white-space: nowrap; /* Prevent "Sort by:" from wrapping */
-}
-
-/* Responsive adjustments for very small screens */
-@media (max-width: 480px) {
-    .list-controls {
-        flex-direction: column; /* Stack controls vertically */
-        align-items: stretch; /* Stretch items to fill width */
-    }
-    #filter-input,
-    #sort-select {
-        width: 100%; /* Full width when stacked */
-        max-width: 100%;
-    }
-}
+#ranked-book-list li:last-child { border-bottom: none; }

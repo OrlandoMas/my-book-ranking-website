@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Personal Book Ranking</title>
+    <title>My Book Ranking</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,76 +11,39 @@
         <h1>My Personal Book Ranking</h1>
     </header>
 
-    <div id="message-area" role="alert" aria-live="polite"></div>
-
-    <div id="cache-reminder-message" class="info-message" style="display: none;">
-        <h3>Important Development Reminder!</h3>
-        <p>If changes aren't appearing, please perform a hard refresh (Ctrl + Shift + R).</p>
-        <button id="dismiss-cache-reminder" class="dismiss-button">Got it!</button>
-    </div>
-
-    <div id="loading-indicator" style="display: none; text-align: center; margin-top: 20px;">
-        <p>Loading books...</p>
-    </div>
-
     <main>
+        <div id="loading-indicator" style="text-align: center; margin: 20px;">
+            <p>Loading your library...</p>
+        </div>
+
         <section id="ranking-interface">
-            <div class="book-comparison">
-                <div id="book-1" class="book-panel">
+            <div class="book-comparison-container">
+                <div id="book-1" class="book-card">
                     <img class="book-cover" src="" alt="Book Cover">
-                    <div class="book-info">
-                        <h2 class="book-title"></h2>
-                        <p class="book-author"></p>
-                    </div>
-                    <button class="prefer-button">Prefer This Book</button>
+                    <h2 class="book-title"></h2>
+                    <p class="book-author"></p>
+                    <button class="prefer-button">I Prefer This</button>
                 </div>
 
-                <div id="book-2" class="book-panel">
+                <div id="book-2" class="book-card">
                     <img class="book-cover" src="" alt="Book Cover">
-                    <div class="book-info">
-                        <h2 class="book-title"></h2>
-                        <p class="book-author"></p>
-                    </div>
-                    <button class="prefer-button">Prefer This Book</button>
+                    <h2 class="book-title"></h2>
+                    <p class="book-author"></p>
+                    <button class="prefer-button">I Prefer This</button>
                 </div>
             </div>
-            <p id="no-more-books" style="display: none;">No more books to compare!</p>
         </section>
 
         <section id="ranked-list-section">
-            <div class="list-controls">
-                <input type="text" id="filter-input" placeholder="Filter by title or author...">
-                <select id="sort-select">
-                    <option value="elo-desc">Elo Score (Highest)</option>
-                    <option value="elo-asc">Elo Score (Lowest)</option>
-                    <option value="title-asc">Title (A-Z)</option>
-                </select>
-            </div>
-            <h2>Your Ranked Books</h2>
-            <ul id="ranked-book-list"></ul>
-            
-            <div class="data-management-buttons">
-                <button id="reset-rankings-button">Reset All</button>
-                <button id="export-rankings-button">Export Backup</button>
-                <button id="import-rankings-button">Import Backup</button>
-                <input type="file" id="import-file-input" style="display: none;">
+            <h2>Top 10 Ranked Books</h2>
+            <ul id="ranked-book-list">
+                <li>Start ranking to see your top books!</li>
+            </ul>
+            <div style="margin-top: 30px;">
+                <button id="reset-rankings-button" style="background-color: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Reset All Progress</button>
             </div>
         </section>
     </main>
-
-    <div id="book-detail-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <div class="modal-body">
-                <img id="modal-book-cover" src="" alt="Cover">
-                <div class="modal-info">
-                    <h2 id="modal-book-title"></h2>
-                    <p id="modal-book-author"></p>
-                    <p id="modal-book-description"></p>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script src="script.js"></script>
 </body>
